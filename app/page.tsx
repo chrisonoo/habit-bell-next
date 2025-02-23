@@ -7,6 +7,7 @@ import { SessionTimeLeft } from "@/components/training/SessionTimeLeft";
 import { TrainingButtons } from "@/components/training/TrainingButtons";
 import { CONFIG } from "@/lib/config";
 import { cn } from "@/lib/utils";
+import { TrainingClockIcon } from "@/components/training/TrainingClockIcon";
 
 export default function HomePage() {
     const [settings, setSettings] = useState(() => {
@@ -474,7 +475,7 @@ export default function HomePage() {
     }, []);
 
     return (
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center p-4">
             <Card
                 className={cn(
                     "w-full max-w-[600px] transition-colors duration-200 border-2",
@@ -483,6 +484,7 @@ export default function HomePage() {
             >
                 <CardContent className="space-y-6 p-6">
                     <div className="text-center flex flex-col justify-center min-h-[7rem]">
+                        {!isTraining && <TrainingClockIcon />}
                         <div className="flex-1 flex items-center justify-center">
                             <TrainingStatus
                                 isTraining={isTraining}
