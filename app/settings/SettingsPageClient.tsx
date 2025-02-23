@@ -48,9 +48,11 @@ export default function SettingsPageClient() {
     const [audioFailed, setAudioFailed] = useState(false);
     const [audioFailed2, setAudioFailed2] = useState(false);
     const [audioFailed3, setAudioFailed3] = useState(false);
+    const [audioFailed4, setAudioFailed4] = useState(false);
     const audioRefs = useRef<HTMLAudioElement[]>([]);
     const audio2Ref = useRef<HTMLAudioElement | null>(null);
     const audio3Ref = useRef<HTMLAudioElement | null>(null);
+    const audio4Ref = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
         if (typeof window !== "undefined") {
@@ -66,6 +68,7 @@ export default function SettingsPageClient() {
                 );
                 audio2Ref.current = new Audio(CONFIG.AUDIO_URLS.GONG2);
                 audio3Ref.current = new Audio(CONFIG.AUDIO_URLS.GONG3);
+                audio4Ref.current = new Audio(CONFIG.AUDIO_URLS.GONG4);
 
                 // Initialize all GONG1 sounds
                 for (const audio of audioRefs.current) {
@@ -74,22 +77,27 @@ export default function SettingsPageClient() {
                     audio.currentTime = 0;
                 }
 
-                // Initialize GONG2 and GONG3
+                // Initialize GONG2, GONG3 and GONG4
                 await audio2Ref.current.play();
                 await audio3Ref.current.play();
+                await audio4Ref.current.play();
                 audio2Ref.current.pause();
                 audio3Ref.current.pause();
+                audio4Ref.current.pause();
                 audio2Ref.current.currentTime = 0;
                 audio3Ref.current.currentTime = 0;
+                audio4Ref.current.currentTime = 0;
 
                 setAudioFailed(false);
                 setAudioFailed2(false);
                 setAudioFailed3(false);
+                setAudioFailed4(false);
             } catch (error) {
                 console.error("Audio initialization failed:", error);
                 setAudioFailed(true);
                 setAudioFailed2(true);
                 setAudioFailed3(true);
+                setAudioFailed4(true);
             }
         };
         initAudio();
@@ -114,7 +122,7 @@ export default function SettingsPageClient() {
         setSettings(defaultSettings);
     }, []);
 
-    const playTestGong = useCallback((gongNumber: 1 | 2 | 3) => {
+    const playTestGong = useCallback((gongNumber: 1 | 2 | 3 | 4) => {
         const audio =
             gongNumber === 1
                 ? audioRefs.current[
@@ -122,7 +130,9 @@ export default function SettingsPageClient() {
                   ]
                 : gongNumber === 2
                 ? audio2Ref.current
-                : audio3Ref.current;
+                : gongNumber === 3
+                ? audio3Ref.current
+                : audio4Ref.current;
         if (audio) {
             setIsGongPlaying(true);
             audio
@@ -140,8 +150,10 @@ export default function SettingsPageClient() {
                         setAudioFailed(true);
                     } else if (gongNumber === 2) {
                         setAudioFailed2(true);
-                    } else {
+                    } else if (gongNumber === 3) {
                         setAudioFailed3(true);
+                    } else {
+                        setAudioFailed4(true);
                     }
                 });
         }
@@ -203,6 +215,7 @@ export default function SettingsPageClient() {
                     audioFailed={audioFailed}
                     audioFailed2={audioFailed2}
                     audioFailed3={audioFailed3}
+                    audioFailed4={audioFailed4}
                     isTraining={false}
                 />
                 <ResetButton resetToDefaults={resetToDefaults} />
