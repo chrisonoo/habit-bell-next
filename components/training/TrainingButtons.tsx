@@ -21,18 +21,18 @@ export function TrainingButtons({
         return (
             <div className="flex sm:flex-row sm:space-y-0 sm:space-x-2 gap-2">
                 <Button
-                    onClick={handleStoodUp}
-                    className="flex-1"
-                    disabled={!waitingForConfirmation || isGongSequencePlaying}
-                >
-                    Let's Go!
-                </Button>
-                <Button
                     onClick={stopTraining}
                     variant="destructive"
                     className="flex-2"
                 >
                     Stop
+                </Button>
+                <Button
+                    onClick={handleStoodUp}
+                    className="flex-1"
+                    disabled={!waitingForConfirmation || isGongSequencePlaying}
+                >
+                    Let's Go!
                 </Button>
             </div>
         );
