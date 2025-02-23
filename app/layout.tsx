@@ -1,28 +1,25 @@
-import type React from "react"
-import { Header } from "@/components/layout/Header"
-import "../styles/animations.css"
+import type React from "react";
+import { Header } from "@/components/layout/Header";
+import "../styles/animations.css";
+import "../styles/globals.css";
 
 export default function RootLayout({
-  children,
+    children,
 }: {
-  children: React.ReactNode
+    children: React.ReactNode;
 }) {
-  return (
-    <html lang="en">
-      <body>
-        <div className="min-h-screen">
-          <Header />
-          <main className="flex-1 p-4">{children}</main>
-        </div>
-      </body>
-    </html>
-  )
+    return (
+        <html lang="en">
+            <body>
+                <div className="min-h-screen">
+                    <Header />
+                    <main className="flex-1 p-4">{children}</main>
+                </div>
+            </body>
+        </html>
+    );
 }
 
-
-
-import './globals.css'
-
 export const metadata = {
-      generator: 'v0.dev'
-    };
+    generator: "v0.dev",
+};
