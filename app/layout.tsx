@@ -11,15 +11,13 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body>
-                <div className="min-h-screen">
+                <div className="min-h-screen flex flex-col">
                     <Header />
-                    <main className="flex-1 p-4">{children}</main>
+                    <main className="flex-1 flex flex-col m-4 lg:m-5">
+                        {children}
+                    </main>
                 </div>
             </body>
         </html>
     );
 }
-
-export const metadata = {
-    generator: "v0.dev",
-};
