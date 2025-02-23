@@ -75,6 +75,7 @@ export default function HomePage() {
     const audioRefs = useRef<HTMLAudioElement[]>([]);
     const audio2Ref = useRef<HTMLAudioElement | null>(null);
     const audio3Ref = useRef<HTMLAudioElement | null>(null);
+    const audio4Ref = useRef<HTMLAudioElement | null>(null);
     const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
     const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
     const gongSequenceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -124,6 +125,7 @@ export default function HomePage() {
                 );
                 audio2Ref.current = new Audio(CONFIG.AUDIO_URLS.GONG2);
                 audio3Ref.current = new Audio(CONFIG.AUDIO_URLS.GONG3);
+                audio4Ref.current = new Audio(CONFIG.AUDIO_URLS.GONG4);
 
                 // Initialize all GONG1 sounds
                 for (const audio of audioRefs.current) {
@@ -132,13 +134,16 @@ export default function HomePage() {
                     audio.currentTime = 0;
                 }
 
-                // Initialize GONG2 and GONG3
+                // Initialize GONG2, GONG3 and GONG4
                 await audio2Ref.current.play();
                 await audio3Ref.current.play();
+                await audio4Ref.current.play();
                 audio2Ref.current.pause();
                 audio3Ref.current.pause();
+                audio4Ref.current.pause();
                 audio2Ref.current.currentTime = 0;
                 audio3Ref.current.currentTime = 0;
+                audio4Ref.current.currentTime = 0;
 
                 setAudioFailed(false);
                 setAudioFailed2(false);
@@ -221,6 +226,11 @@ export default function HomePage() {
             audio3Ref.current.pause();
             audio3Ref.current.currentTime = 0;
         }
+        if (audio4Ref.current) {
+            audio4Ref.current.loop = false;
+            audio4Ref.current.pause();
+            audio4Ref.current.currentTime = 0;
+        }
 
         // Clear all timers
         if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
@@ -238,8 +248,72 @@ export default function HomePage() {
         setWaitingForConfirmation(false);
     }, [maxInterval, minInterval]);
 
+    const playThirdGong = useCallback(() => {
+        if (!isActiveRef.current || !isThirdSoundEnabledRef.current) {
+            setIsGongSequencePlaying(false);
+            startGong4Loop();
+            return;
+        }
+        if (audio3Ref.current) {
+            gongSequenceTimerRef.current = setTimeout(() => {
+                if (isActiveRef.current && isThirdSoundEnabledRef.current) {
+                    setIsGongPlaying(true);
+                    audio3Ref
+                        .current!.play()
+                        .then(() => {
+                            audio3Ref.current!.onended = () => {
+                                if (isActiveRef.current) {
+                                    setIsGongPlaying(false);
+                                    setIsGongSequencePlaying(false);
+                                    startGong4Loop();
+                                }
+                            };
+                        })
+                        .catch((error) => {
+                            console.error("Third gong playback failed:", error);
+                            if (isActiveRef.current) {
+                                setIsGongPlaying(false);
+                                setIsGongSequencePlaying(false);
+                                startGong4Loop();
+                            }
+                        });
+                } else {
+                    setIsGongSequencePlaying(false);
+                    startGong4Loop();
+                }
+            }, pause1Duration * 1000);
+        } else {
+            setIsGongSequencePlaying(false);
+            startGong4Loop();
+        }
+    }, [pause1Duration]);
+
+    const startGong4Loop = useCallback(() => {
+        if (!isActiveRef.current || !audio4Ref.current) return;
+
+        const playGong4 = () => {
+            if (!isActiveRef.current || !audio4Ref.current) return;
+            audio4Ref.current.currentTime = 0;
+            audio4Ref.current.play().catch((error) => {
+                console.error("Gong4 playback failed:", error);
+            });
+        };
+
+        audio4Ref.current.loop = true;
+        playGong4();
+    }, []);
+
+    const stopGong4 = useCallback(() => {
+        if (audio4Ref.current) {
+            audio4Ref.current.loop = false;
+            audio4Ref.current.pause();
+            audio4Ref.current.currentTime = 0;
+        }
+    }, []);
+
     const handleStoodUp = useCallback(() => {
         if (isTraining && waitingForConfirmation) {
+            stopGong4();
             if (isLastInterval) {
                 stopTraining();
             } else {
@@ -252,6 +326,7 @@ export default function HomePage() {
         isLastInterval,
         stopTraining,
         setNewInterval,
+        stopGong4,
     ]);
 
     const playGongSequence = useCallback(() => {
@@ -370,41 +445,6 @@ export default function HomePage() {
         };
         playNextGong();
     }, [pause2Duration]);
-
-    const playThirdGong = useCallback(() => {
-        if (!isActiveRef.current || !isThirdSoundEnabledRef.current) {
-            setIsGongSequencePlaying(false);
-            return;
-        }
-        if (audio3Ref.current) {
-            gongSequenceTimerRef.current = setTimeout(() => {
-                if (isActiveRef.current && isThirdSoundEnabledRef.current) {
-                    setIsGongPlaying(true);
-                    audio3Ref
-                        .current!.play()
-                        .then(() => {
-                            audio3Ref.current!.onended = () => {
-                                if (isActiveRef.current) {
-                                    setIsGongPlaying(false);
-                                    setIsGongSequencePlaying(false);
-                                }
-                            };
-                        })
-                        .catch((error) => {
-                            console.error("Third gong playback failed:", error);
-                            if (isActiveRef.current) {
-                                setIsGongPlaying(false);
-                                setIsGongSequencePlaying(false);
-                            }
-                        });
-                } else {
-                    setIsGongSequencePlaying(false);
-                }
-            }, pause1Duration * 1000);
-        } else {
-            setIsGongSequencePlaying(false);
-        }
-    }, [pause1Duration]);
 
     const playTestGong = useCallback(
         (gongNumber: 1 | 2 | 3) => {

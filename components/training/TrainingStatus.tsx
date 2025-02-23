@@ -25,7 +25,7 @@ export function TrainingStatus({
 
     if (waitingForConfirmation) {
         return (
-            <div className="text-xl sm:text-2xl font-bold text-yellow-500">
+            <div className="text-xl sm:text-2xl font-bold text-red-500">
                 Stand up now!
             </div>
         );

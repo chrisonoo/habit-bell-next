@@ -5,8 +5,8 @@ export const CONFIG = {
     STEP_SESSION_DURATION: 1,
 
     // Interval settings
-    DEFAULT_MIN_INTERVAL: 30,
-    DEFAULT_MAX_INTERVAL: 45,
+    DEFAULT_MIN_INTERVAL: 15,
+    DEFAULT_MAX_INTERVAL: 30,
     MIN_INTERVAL: 10,
     MAX_INTERVAL: 120,
     STEP_INTERVAL: 1,
@@ -32,6 +32,7 @@ export const CONFIG = {
         ],
         GONG2: "https://cdn.freesound.org/previews/554/554056_12315704-lq.mp3",
         GONG3: "https://cdn.freesound.org/previews/529/529817_10761583-lq.mp3",
+        GONG4: "https://cdn.freesound.org/previews/492/492481_5701403-lq.mp3",
     },
 
     // Other settings
