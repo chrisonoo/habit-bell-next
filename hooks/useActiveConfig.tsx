@@ -42,6 +42,7 @@ interface ActiveConfigContextType {
     updateActiveConfig: (newConfig: string) => void;
     isPomodoroMode: boolean;
     isTrainingMode: boolean;
+    isReady: boolean;
 }
 
 const ActiveConfigContext = createContext<ActiveConfigContextType | undefined>(
@@ -49,6 +50,8 @@ const ActiveConfigContext = createContext<ActiveConfigContextType | undefined>(
 );
 
 export function ActiveConfigProvider({ children }: { children: ReactNode }) {
+    const [isReady, setIsReady] = useState(false);
+
     const createDefaultSettings = (
         config: typeof TRAINING_CONFIG | typeof POMODORO_CONFIG,
         mode: "pomodoro" | "training"
@@ -105,10 +108,13 @@ export function ActiveConfigProvider({ children }: { children: ReactNode }) {
                     JSON.stringify(defaultTrainingSettings)
                 );
                 localStorage.setItem("activeConfig", "training");
+                setIsReady(true);
                 return "training";
             }
+            setIsReady(true);
             return savedConfig;
         }
+        setIsReady(true);
         return "training";
     });
 
@@ -146,12 +152,14 @@ export function ActiveConfigProvider({ children }: { children: ReactNode }) {
 
     const updateActiveConfig = (newConfig: string) => {
         if (typeof window !== "undefined") {
+            setIsReady(false);
             // Check if settings exist for the new mode
             const settingsKey =
                 newConfig === "pomodoro"
                     ? "pomodoroSettings"
                     : "trainingSettings";
             const savedSettings = localStorage.getItem(settingsKey);
+            console.log("Current saved settings before update:", savedSettings);
 
             // Always create and save default settings for the new mode
             const CONFIG =
@@ -168,6 +176,10 @@ export function ActiveConfigProvider({ children }: { children: ReactNode }) {
 
             // Save settings before updating active config
             localStorage.setItem(settingsKey, JSON.stringify(defaultSettings));
+            console.log(
+                "Settings saved to localStorage:",
+                localStorage.getItem(settingsKey)
+            );
 
             // Verify settings were saved correctly
             const verifySettings = localStorage.getItem(settingsKey);
@@ -182,8 +194,15 @@ export function ActiveConfigProvider({ children }: { children: ReactNode }) {
                 localStorage.setItem("activeConfig", newConfig);
                 setActiveConfig(newConfig);
                 console.log(`Switched to ${newConfig} mode`);
+
+                // Double check the settings after mode switch
+                const finalCheck = localStorage.getItem(settingsKey);
+                console.log("Final localStorage check:", finalCheck);
+
+                setIsReady(true);
             } else {
                 console.error(`Failed to save settings for ${newConfig} mode`);
+                setIsReady(true);
             }
         }
     };
@@ -193,6 +212,7 @@ export function ActiveConfigProvider({ children }: { children: ReactNode }) {
         updateActiveConfig,
         isPomodoroMode: activeConfig === "pomodoro",
         isTrainingMode: activeConfig === "training",
+        isReady,
     };
 
     return (
