@@ -49,14 +49,24 @@ export function Header() {
                                     Training
                                 </Button>
                             </Link>
-                            <Link href="/settings" passHref>
+                            <Link href="/settings-training" passHref>
                                 <Button
                                     variant="ghost"
                                     className="justify-start text-base py-3"
                                     onClick={() => setIsOpen(false)}
                                 >
                                     <Settings className="mr-3 h-5 w-5" />
-                                    Settings
+                                    Settings (Training)
+                                </Button>
+                            </Link>
+                            <Link href="/settings-pomodoro" passHref>
+                                <Button
+                                    variant="ghost"
+                                    className="justify-start text-base py-3"
+                                    onClick={() => setIsOpen(false)}
+                                >
+                                    <Settings className="mr-3 h-5 w-5" />
+                                    Settings (Pomodoro)
                                 </Button>
                             </Link>
                         </nav>
