@@ -11,13 +11,22 @@ import { cn } from "@/lib/utils";
 import { TrainingClockIcon } from "@/components/training/TrainingClockIcon";
 import { useActiveConfig } from "@/hooks/useActiveConfig";
 
+interface Settings {
+    sessionDuration: number;
+    minInterval: number;
+    maxInterval: number;
+    pause1Duration: number;
+    pause2Duration: number;
+    isThirdSoundEnabled: boolean;
+}
+
 export default function HomePage() {
     const { activeConfig, isPomodoroMode, isReady } = useActiveConfig();
     const CONFIG = isPomodoroMode ? POMODORO_CONFIG : TRAINING_CONFIG;
 
     // Initialize with loading state
     const [isLoading, setIsLoading] = useState(true);
-    const [settings, setSettings] = useState<any>(null);
+    const [settings, setSettings] = useState<Settings | null>(null);
     const [isActive, setIsActive] = useState(false);
     const [isTraining, setIsTraining] = useState(false);
     const [countdown, setCountdown] = useState(0);
@@ -59,51 +68,6 @@ export default function HomePage() {
         isThirdSoundEnabledRef.current = isThirdSoundEnabled;
         console.log("Third sound enabled:", isThirdSoundEnabled); // Debug log
     }, [isThirdSoundEnabled]);
-
-    useEffect(() => {
-        // Save settings to localStorage whenever they change
-        if (typeof window !== "undefined") {
-            const settingsToSave = {
-                // Session settings
-                sessionDuration,
-                maxSessionDuration: CONFIG.MAX_SESSION_DURATION,
-                stepSessionDuration: CONFIG.STEP_SESSION_DURATION,
-
-                // Interval settings
-                minInterval,
-                maxInterval,
-                stepInterval: CONFIG.STEP_INTERVAL,
-                defaultMinInterval: CONFIG.MIN_INTERVAL,
-                defaultMaxInterval: CONFIG.MAX_INTERVAL,
-
-                // Pause durations
-                pause1Duration,
-                maxPause1Duration: CONFIG.MAX_PAUSE1_DURATION,
-                minPause1Duration: CONFIG.MIN_PAUSE1_DURATION,
-                stepPause1Duration: CONFIG.STEP_PAUSE1_DURATION,
-                pause2Duration,
-                maxPause2Duration: CONFIG.MAX_PAUSE2_DURATION,
-                minPause2Duration: CONFIG.MIN_PAUSE2_DURATION,
-                stepPause2Duration: CONFIG.STEP_PAUSE2_DURATION,
-
-                // Other settings
-                isThirdSoundEnabled,
-            };
-            localStorage.setItem(
-                isPomodoroMode ? "pomodoroSettings" : "trainingSettings",
-                JSON.stringify(settingsToSave)
-            );
-        }
-    }, [
-        sessionDuration,
-        minInterval,
-        maxInterval,
-        pause1Duration,
-        pause2Duration,
-        isThirdSoundEnabled,
-        isPomodoroMode,
-        CONFIG,
-    ]);
 
     useEffect(() => {
         const initAudio = async () => {
@@ -479,22 +443,39 @@ export default function HomePage() {
 
     // Load settings effect
     useEffect(() => {
-        if (typeof window !== "undefined" && CONFIG) {
-            console.log("Starting settings load with CONFIG:", CONFIG);
-            const settingsKey = isPomodoroMode
-                ? "pomodoroSettings"
-                : "trainingSettings";
+        if (
+            typeof window !== "undefined" &&
+            CONFIG &&
+            isReady &&
+            activeConfig
+        ) {
+            try {
+                const config = JSON.parse(activeConfig) as Settings;
+                console.log("Loading settings from activeConfig:", config);
 
-            const savedSettings = localStorage.getItem(settingsKey);
-            console.log("Raw saved settings:", savedSettings);
+                // Update all settings states
+                setSettings(config);
+                setSessionDuration(config.sessionDuration);
+                setMinInterval(config.minInterval);
+                setMaxInterval(config.maxInterval);
+                setPause1Duration(config.pause1Duration);
+                setPause2Duration(config.pause2Duration);
+                setIsThirdSoundEnabled(config.isThirdSoundEnabled);
 
-            let settingsToUse;
-            if (savedSettings) {
-                settingsToUse = JSON.parse(savedSettings);
-                console.log("Using saved settings:", settingsToUse);
-            } else {
-                console.log("No saved settings found, using CONFIG defaults");
-                settingsToUse = {
+                console.log("Final state values:", {
+                    sessionDuration: config.sessionDuration,
+                    minInterval: config.minInterval,
+                    maxInterval: config.maxInterval,
+                    pause1Duration: config.pause1Duration,
+                    pause2Duration: config.pause2Duration,
+                    isThirdSoundEnabled: config.isThirdSoundEnabled,
+                });
+
+                setIsLoading(false);
+            } catch (error) {
+                console.error("Error parsing activeConfig:", error);
+                // Use default values from CONFIG if parsing fails
+                const defaultSettings: Settings = {
                     sessionDuration: CONFIG.DEFAULT_SESSION_DURATION,
                     minInterval: CONFIG.DEFAULT_MIN_INTERVAL,
                     maxInterval: CONFIG.DEFAULT_MAX_INTERVAL,
@@ -502,30 +483,17 @@ export default function HomePage() {
                     pause2Duration: CONFIG.DEFAULT_PAUSE2_DURATION,
                     isThirdSoundEnabled: CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
                 };
+                setSettings(defaultSettings);
+                setSessionDuration(defaultSettings.sessionDuration);
+                setMinInterval(defaultSettings.minInterval);
+                setMaxInterval(defaultSettings.maxInterval);
+                setPause1Duration(defaultSettings.pause1Duration);
+                setPause2Duration(defaultSettings.pause2Duration);
+                setIsThirdSoundEnabled(defaultSettings.isThirdSoundEnabled);
+                setIsLoading(false);
             }
-
-            // Update all settings states
-            console.log("Updating states with settings:", settingsToUse);
-            setSettings(settingsToUse);
-            setSessionDuration(settingsToUse.sessionDuration);
-            setMinInterval(settingsToUse.minInterval);
-            setMaxInterval(settingsToUse.maxInterval);
-            setPause1Duration(settingsToUse.pause1Duration);
-            setPause2Duration(settingsToUse.pause2Duration);
-            setIsThirdSoundEnabled(settingsToUse.isThirdSoundEnabled);
-
-            console.log("Final state values:", {
-                sessionDuration: settingsToUse.sessionDuration,
-                minInterval: settingsToUse.minInterval,
-                maxInterval: settingsToUse.maxInterval,
-                pause1Duration: settingsToUse.pause1Duration,
-                pause2Duration: settingsToUse.pause2Duration,
-                isThirdSoundEnabled: settingsToUse.isThirdSoundEnabled,
-            });
-
-            setIsLoading(false);
         }
-    }, [isPomodoroMode, CONFIG]);
+    }, [isPomodoroMode, CONFIG, activeConfig, isReady]);
 
     // Add logging to resetToDefaults
     const resetToDefaults = useCallback(() => {
