@@ -23,8 +23,8 @@ export function ConfigSelector({
 
     return (
         <Card className="mt-8">
-            <CardContent className="pt-6">
-                <CardDescription className="mb-4">
+            <CardContent className="p-3">
+                <CardDescription className="mb-3">
                     Active configuration
                 </CardDescription>
                 <Select value={activeConfig} onValueChange={handleConfigChange}>

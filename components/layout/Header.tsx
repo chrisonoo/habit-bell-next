@@ -76,15 +76,12 @@ export function Header() {
                 </SheetTrigger>
                 <SheetContent className="flex flex-col w-[250px] sm:w-[300px]">
                     <div className="flex flex-col flex-1">
-                        <SheetTitle>Menu</SheetTitle>
-                        <SheetDescription>
-                            Navigation and settings
-                        </SheetDescription>
+                        <SheetTitle className="my-4">Menu</SheetTitle>
                         <nav className="flex flex-col space-y-2">
                             <Link href="/" passHref>
                                 <Button
                                     variant="ghost"
-                                    className="justify-start text-base py-3"
+                                    className="w-full justify-start text-base py-3"
                                     onClick={() => setIsOpen(false)}
                                 >
                                     <Dumbbell className="mr-3 h-5 w-5" />
@@ -94,7 +91,7 @@ export function Header() {
                             <Link href="/settings-training" passHref>
                                 <Button
                                     variant="ghost"
-                                    className="justify-start text-base py-3"
+                                    className="w-full justify-start text-base py-3"
                                     onClick={() => setIsOpen(false)}
                                 >
                                     <Settings className="mr-3 h-5 w-5" />
@@ -104,7 +101,7 @@ export function Header() {
                             <Link href="/settings-pomodoro" passHref>
                                 <Button
                                     variant="ghost"
-                                    className="justify-start text-base py-3"
+                                    className="w-full justify-start text-base py-3"
                                     onClick={() => setIsOpen(false)}
                                 >
                                     <Settings className="mr-3 h-5 w-5" />
@@ -118,7 +115,7 @@ export function Header() {
                             activeConfig={activeConfig}
                             onConfigChange={updateActiveConfig}
                         />
-                        <div className="border-t pt-4 text-center">
+                        <div className="border-t pt-4 text-center mt-4">
                             <p className="text-sm text-muted-foreground">
                                 © {new Date().getFullYear()} Habit Bell
                             </p>
