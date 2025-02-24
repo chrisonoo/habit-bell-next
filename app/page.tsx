@@ -21,12 +21,12 @@ interface Settings {
 }
 
 export default function HomePage() {
-    const { activeConfig, isPomodoroMode, isReady } = useActiveConfig();
+    const { activeConfig, isPomodoroMode, isReady, currentSettings } =
+        useActiveConfig();
     const CONFIG = isPomodoroMode ? POMODORO_CONFIG : TRAINING_CONFIG;
 
     // Initialize with loading state
     const [isLoading, setIsLoading] = useState(true);
-    const [settings, setSettings] = useState<Settings | null>(null);
     const [isActive, setIsActive] = useState(false);
     const [isTraining, setIsTraining] = useState(false);
     const [countdown, setCountdown] = useState(0);
@@ -37,17 +37,9 @@ export default function HomePage() {
     const [waitingForConfirmation, setWaitingForConfirmation] = useState(false);
     const [isLastInterval, setIsLastInterval] = useState(false);
     const [isGongSequencePlaying, setIsGongSequencePlaying] = useState(false);
-    const [isThirdSoundEnabled, setIsThirdSoundEnabled] = useState(false);
     const [audioFailed, setAudioFailed] = useState(false);
     const [audioFailed2, setAudioFailed2] = useState(false);
     const [audioFailed3, setAudioFailed3] = useState(false);
-
-    // Initialize these with null and set them after loading settings
-    const [pause1Duration, setPause1Duration] = useState<number>(0);
-    const [pause2Duration, setPause2Duration] = useState<number>(0);
-    const [sessionDuration, setSessionDuration] = useState<number>(0);
-    const [minInterval, setMinInterval] = useState<number>(0);
-    const [maxInterval, setMaxInterval] = useState<number>(0);
 
     const audioRefs = useRef<HTMLAudioElement[]>([]);
     const audio2Ref = useRef<HTMLAudioElement | null>(null);
@@ -58,16 +50,16 @@ export default function HomePage() {
     const gongSequenceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     const isActiveRef = useRef(isActive);
-    const isThirdSoundEnabledRef = useRef(isThirdSoundEnabled);
 
     useEffect(() => {
         isActiveRef.current = isActive;
     }, [isActive]);
 
     useEffect(() => {
-        isThirdSoundEnabledRef.current = isThirdSoundEnabled;
-        console.log("Third sound enabled:", isThirdSoundEnabled); // Debug log
-    }, [isThirdSoundEnabled]);
+        if (currentSettings) {
+            setIsLoading(false);
+        }
+    }, [currentSettings]);
 
     useEffect(() => {
         const initAudio = async () => {
@@ -145,13 +137,27 @@ export default function HomePage() {
     }, [isActive, isTraining, sessionTimeLeft, isSessionEnded]);
 
     const startTraining = useCallback(() => {
+        if (!currentSettings) return;
+
+        console.log("Starting training with values:", currentSettings);
+
+        // Validate values before starting
+        if (
+            currentSettings.sessionDuration <= 0 ||
+            currentSettings.minInterval <= 0 ||
+            currentSettings.maxInterval <= 0
+        ) {
+            console.error("Invalid training values");
+            return;
+        }
+
         setIsActive(true);
         setIsTraining(true);
-        setSessionTimeLeft(sessionDuration * 60);
+        setSessionTimeLeft(currentSettings.sessionDuration * 60);
         setIsSessionEnded(false);
         setIsLastInterval(false);
         setNewInterval();
-    }, [sessionDuration]);
+    }, [currentSettings]);
 
     const stopTraining = useCallback(() => {
         setIsActive(false);
@@ -192,23 +198,51 @@ export default function HomePage() {
     }, []);
 
     const setNewInterval = useCallback(() => {
+        if (!currentSettings) return;
+
+        console.log("Setting new interval with:", {
+            minInterval: currentSettings.minInterval,
+            maxInterval: currentSettings.maxInterval,
+        });
+
+        if (
+            currentSettings.minInterval <= 0 ||
+            currentSettings.maxInterval <= 0 ||
+            currentSettings.maxInterval < currentSettings.minInterval
+        ) {
+            console.error("Invalid interval values:", {
+                minInterval: currentSettings.minInterval,
+                maxInterval: currentSettings.maxInterval,
+            });
+            return;
+        }
+
         const newInterval = Math.floor(
-            Math.random() * (maxInterval - minInterval + 1) + minInterval
+            Math.random() *
+                (currentSettings.maxInterval -
+                    currentSettings.minInterval +
+                    1) +
+                currentSettings.minInterval
         );
+        console.log("Generated new interval:", newInterval);
+
         setCurrentInterval(newInterval);
         setCountdown(newInterval);
         setWaitingForConfirmation(false);
-    }, [maxInterval, minInterval]);
+    }, [currentSettings]);
 
     const playThirdGong = useCallback(() => {
-        if (!isActiveRef.current || !isThirdSoundEnabledRef.current) {
+        if (!isActiveRef.current || !currentSettings?.isThirdSoundEnabled) {
             setIsGongSequencePlaying(false);
             startGong4Loop();
             return;
         }
         if (audio3Ref.current) {
             gongSequenceTimerRef.current = setTimeout(() => {
-                if (isActiveRef.current && isThirdSoundEnabledRef.current) {
+                if (
+                    isActiveRef.current &&
+                    currentSettings?.isThirdSoundEnabled
+                ) {
                     setIsGongPlaying(true);
                     audio3Ref
                         .current!.play()
@@ -233,12 +267,12 @@ export default function HomePage() {
                     setIsGongSequencePlaying(false);
                     startGong4Loop();
                 }
-            }, pause1Duration * 1000);
+            }, (currentSettings?.pause1Duration || CONFIG.DEFAULT_PAUSE1_DURATION) * 1000);
         } else {
             setIsGongSequencePlaying(false);
             startGong4Loop();
         }
-    }, [pause1Duration]);
+    }, [currentSettings, CONFIG]);
 
     const startGong4Loop = useCallback(() => {
         if (!isActiveRef.current || !audio4Ref.current) return;
@@ -308,7 +342,8 @@ export default function HomePage() {
                             setIsGongPlaying(false);
                             gongSequenceTimerRef.current = setTimeout(
                                 playSecondGongSequence,
-                                pause1Duration * 1000
+                                (currentSettings?.pause1Duration ||
+                                    CONFIG.DEFAULT_PAUSE1_DURATION) * 1000
                             );
                         }
                     };
@@ -319,17 +354,19 @@ export default function HomePage() {
                         setIsGongPlaying(false);
                         gongSequenceTimerRef.current = setTimeout(
                             playSecondGongSequence,
-                            pause1Duration * 1000
+                            (currentSettings?.pause1Duration ||
+                                CONFIG.DEFAULT_PAUSE1_DURATION) * 1000
                         );
                     }
                 });
         } else {
             gongSequenceTimerRef.current = setTimeout(
                 playSecondGongSequence,
-                pause1Duration * 1000
+                (currentSettings?.pause1Duration ||
+                    CONFIG.DEFAULT_PAUSE1_DURATION) * 1000
             );
         }
-    }, [pause1Duration, getRandomGong1]);
+    }, [currentSettings, CONFIG, getRandomGong1]);
 
     const playSecondGongSequence = useCallback(() => {
         if (!isActiveRef.current) return;
@@ -348,10 +385,12 @@ export default function HomePage() {
                                 if (count < 5) {
                                     gongSequenceTimerRef.current = setTimeout(
                                         playNextGong,
-                                        pause2Duration * 1000
+                                        (currentSettings?.pause2Duration ||
+                                            CONFIG.DEFAULT_PAUSE2_DURATION) *
+                                            1000
                                     );
                                 } else {
-                                    if (isThirdSoundEnabledRef.current) {
+                                    if (currentSettings?.isThirdSoundEnabled) {
                                         playThirdGong();
                                     } else {
                                         setIsGongSequencePlaying(false);
@@ -368,10 +407,11 @@ export default function HomePage() {
                             if (count < 5) {
                                 gongSequenceTimerRef.current = setTimeout(
                                     playNextGong,
-                                    pause2Duration * 1000
+                                    (currentSettings?.pause2Duration ||
+                                        CONFIG.DEFAULT_PAUSE2_DURATION) * 1000
                                 );
                             } else {
-                                if (isThirdSoundEnabledRef.current) {
+                                if (currentSettings?.isThirdSoundEnabled) {
                                     playThirdGong();
                                 } else {
                                     setIsGongSequencePlaying(false);
@@ -384,10 +424,11 @@ export default function HomePage() {
                 if (count < 5) {
                     gongSequenceTimerRef.current = setTimeout(
                         playNextGong,
-                        pause2Duration * 1000
+                        (currentSettings?.pause2Duration ||
+                            CONFIG.DEFAULT_PAUSE2_DURATION) * 1000
                     );
                 } else {
-                    if (isThirdSoundEnabledRef.current) {
+                    if (currentSettings?.isThirdSoundEnabled) {
                         playThirdGong();
                     } else {
                         setIsGongSequencePlaying(false);
@@ -396,7 +437,7 @@ export default function HomePage() {
             }
         };
         playNextGong();
-    }, [pause2Duration]);
+    }, [currentSettings, CONFIG]);
 
     const playTestGong = useCallback(
         (gongNumber: 1 | 2 | 3) => {
@@ -441,99 +482,18 @@ export default function HomePage() {
         return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
     }, []);
 
-    // Load settings effect
-    useEffect(() => {
-        if (
-            typeof window !== "undefined" &&
-            CONFIG &&
-            isReady &&
-            activeConfig
-        ) {
-            try {
-                const config = JSON.parse(activeConfig) as Settings;
-                console.log("Loading settings from activeConfig:", config);
-
-                // Update all settings states
-                setSettings(config);
-                setSessionDuration(config.sessionDuration);
-                setMinInterval(config.minInterval);
-                setMaxInterval(config.maxInterval);
-                setPause1Duration(config.pause1Duration);
-                setPause2Duration(config.pause2Duration);
-                setIsThirdSoundEnabled(config.isThirdSoundEnabled);
-
-                console.log("Final state values:", {
-                    sessionDuration: config.sessionDuration,
-                    minInterval: config.minInterval,
-                    maxInterval: config.maxInterval,
-                    pause1Duration: config.pause1Duration,
-                    pause2Duration: config.pause2Duration,
-                    isThirdSoundEnabled: config.isThirdSoundEnabled,
-                });
-
-                setIsLoading(false);
-            } catch (error) {
-                console.error("Error parsing activeConfig:", error);
-                // Use default values from CONFIG if parsing fails
-                const defaultSettings: Settings = {
-                    sessionDuration: CONFIG.DEFAULT_SESSION_DURATION,
-                    minInterval: CONFIG.DEFAULT_MIN_INTERVAL,
-                    maxInterval: CONFIG.DEFAULT_MAX_INTERVAL,
-                    pause1Duration: CONFIG.DEFAULT_PAUSE1_DURATION,
-                    pause2Duration: CONFIG.DEFAULT_PAUSE2_DURATION,
-                    isThirdSoundEnabled: CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
-                };
-                setSettings(defaultSettings);
-                setSessionDuration(defaultSettings.sessionDuration);
-                setMinInterval(defaultSettings.minInterval);
-                setMaxInterval(defaultSettings.maxInterval);
-                setPause1Duration(defaultSettings.pause1Duration);
-                setPause2Duration(defaultSettings.pause2Duration);
-                setIsThirdSoundEnabled(defaultSettings.isThirdSoundEnabled);
-                setIsLoading(false);
-            }
-        }
-    }, [isPomodoroMode, CONFIG, activeConfig, isReady]);
-
-    // Add logging to resetToDefaults
-    const resetToDefaults = useCallback(() => {
-        console.log("Resetting to defaults with CONFIG:", CONFIG);
-        const defaultSettings = {
-            sessionDuration: CONFIG.DEFAULT_SESSION_DURATION,
-            minInterval: CONFIG.DEFAULT_MIN_INTERVAL,
-            maxInterval: CONFIG.DEFAULT_MAX_INTERVAL,
-            pause1Duration: CONFIG.DEFAULT_PAUSE1_DURATION,
-            pause2Duration: CONFIG.DEFAULT_PAUSE2_DURATION,
-            isThirdSoundEnabled: CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
-        };
-
-        console.log("New default settings:", defaultSettings);
-
-        // Update all states
-        setSettings(defaultSettings);
-        setSessionDuration(defaultSettings.sessionDuration);
-        setMinInterval(defaultSettings.minInterval);
-        setMaxInterval(defaultSettings.maxInterval);
-        setPause1Duration(defaultSettings.pause1Duration);
-        setPause2Duration(defaultSettings.pause2Duration);
-        setIsThirdSoundEnabled(defaultSettings.isThirdSoundEnabled);
-
-        // Save settings using localStorage
-        if (typeof window !== "undefined") {
-            const settingsKey = isPomodoroMode
-                ? "pomodoroSettings"
-                : "trainingSettings";
-            console.log(
-                "Saving default settings to localStorage key:",
-                settingsKey
-            );
-            localStorage.setItem(settingsKey, JSON.stringify(defaultSettings));
-            console.log(
-                "Verification - saved settings:",
-                localStorage.getItem(settingsKey)
-            );
-        }
-    }, [CONFIG, isPomodoroMode]);
+    function isValidSettings(obj: any): obj is Settings {
+        return (
+            typeof obj === "object" &&
+            obj !== null &&
+            typeof obj.sessionDuration === "number" &&
+            typeof obj.minInterval === "number" &&
+            typeof obj.maxInterval === "number" &&
+            typeof obj.pause1Duration === "number" &&
+            typeof obj.pause2Duration === "number" &&
+            typeof obj.isThirdSoundEnabled === "boolean"
+        );
+    }
 
     if (isLoading) {
         return <div>Loading settings...</div>;
