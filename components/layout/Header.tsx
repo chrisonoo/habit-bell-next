@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Sheet,
@@ -14,10 +14,37 @@ import Link from "next/link";
 import { ConfigSelector } from "../settings/ConfigSelector";
 import { useActiveConfig } from "@/hooks/useActiveConfig";
 
+interface HeaderContextType {
+    isHeaderVisible: boolean;
+    toggleHeader: () => void;
+}
+
+export const HeaderContext = createContext<HeaderContextType>({
+    isHeaderVisible: true,
+    toggleHeader: () => {},
+});
+
+export const useHeader = () => useContext(HeaderContext);
+
+export function HeaderProvider({ children }: { children: React.ReactNode }) {
+    const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+
+    const toggleHeader = () => {
+        setIsHeaderVisible((prev) => !prev);
+    };
+
+    return (
+        <HeaderContext.Provider value={{ isHeaderVisible, toggleHeader }}>
+            {children}
+        </HeaderContext.Provider>
+    );
+}
+
 export function Header() {
     const [isOpen, setIsOpen] = useState(false);
     const [isRinging, setIsRinging] = useState(false);
     const { activeConfig, updateActiveConfig } = useActiveConfig();
+    const { isHeaderVisible } = useHeader();
 
     useEffect(() => {
         const ringInterval = setInterval(() => {
@@ -27,6 +54,8 @@ export function Header() {
 
         return () => clearInterval(ringInterval);
     }, []);
+
+    if (!isHeaderVisible) return null;
 
     return (
         <header className="flex items-center justify-between p-4 border-b">

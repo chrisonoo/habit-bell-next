@@ -10,6 +10,7 @@ import { CONFIG as POMODORO_CONFIG } from "@/lib/config-pomodoro";
 import { cn } from "@/lib/utils";
 import { TrainingClockIcon } from "@/components/training/TrainingClockIcon";
 import { useActiveConfig } from "@/hooks/useActiveConfig";
+import { useHeader } from "@/components/layout/Header";
 
 interface Settings {
     sessionDuration: number;
@@ -538,7 +539,9 @@ export default function HomePage() {
                     <div className="text-center flex flex-col justify-center min-h-[7rem]">
                         {!isTraining && (
                             <>
-                                <TrainingClockIcon />
+                                <TrainingClockIcon
+                                    onClick={useHeader().toggleHeader}
+                                />
                                 <div className="text-sm text-muted-foreground mb-4">
                                     Active Mode:{" "}
                                     {isPomodoroMode ? "Pomodoro" : "Training"}
