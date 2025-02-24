@@ -16,13 +16,18 @@ export function ConfigSelector({
     activeConfig,
     onConfigChange,
 }: ConfigSelectorProps) {
+    const handleConfigChange = (value: string) => {
+        console.log(`Changing mode from ${activeConfig} to ${value}`);
+        onConfigChange(value);
+    };
+
     return (
         <Card className="mt-8">
             <CardContent className="pt-6">
                 <CardDescription className="mb-4">
                     Active configuration
                 </CardDescription>
-                <Select value={activeConfig} onValueChange={onConfigChange}>
+                <Select value={activeConfig} onValueChange={handleConfigChange}>
                     <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select configuration mode" />
                     </SelectTrigger>

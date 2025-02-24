@@ -102,14 +102,34 @@ export function ActiveConfigProvider({ children }: { children: ReactNode }) {
             const savedSettings = localStorage.getItem(settingsKey);
             if (savedSettings) {
                 const settings = JSON.parse(savedSettings);
-                setCurrentSettings(settings);
-                return;
+                // Validate that all required fields are present and of correct type
+                if (
+                    typeof settings === "object" &&
+                    settings !== null &&
+                    typeof settings.sessionDuration === "number" &&
+                    typeof settings.maxSessionDuration === "number" &&
+                    typeof settings.stepSessionDuration === "number" &&
+                    typeof settings.minInterval === "number" &&
+                    typeof settings.maxInterval === "number" &&
+                    typeof settings.stepInterval === "number" &&
+                    typeof settings.defaultMinInterval === "number" &&
+                    typeof settings.defaultMaxInterval === "number" &&
+                    typeof settings.pause1Duration === "number" &&
+                    typeof settings.pause2Duration === "number" &&
+                    typeof settings.isThirdSoundEnabled === "boolean"
+                ) {
+                    setCurrentSettings(settings);
+                    return;
+                }
+                console.warn(
+                    "Invalid settings format found in localStorage, using defaults"
+                );
             }
         } catch (error) {
             console.error("Error loading settings:", error);
         }
 
-        // If no valid settings found, create and save defaults
+        // If no valid settings found or validation failed, create and save defaults
         const defaultSettings = createDefaultSettings(
             CONFIG,
             mode as "pomodoro" | "training"

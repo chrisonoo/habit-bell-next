@@ -52,6 +52,21 @@ export default function HomePage() {
     const isActiveRef = useRef(isActive);
 
     useEffect(() => {
+        console.log("Page loaded - Home Page");
+        const trainingSettings = localStorage.getItem("trainingSettings");
+        const pomodoroSettings = localStorage.getItem("pomodoroSettings");
+        console.log("Storage content:", {
+            trainingSettings: trainingSettings
+                ? JSON.parse(trainingSettings)
+                : null,
+            pomodoroSettings: pomodoroSettings
+                ? JSON.parse(pomodoroSettings)
+                : null,
+            activeConfig,
+        });
+    }, []);
+
+    useEffect(() => {
         isActiveRef.current = isActive;
     }, [isActive]);
 
@@ -140,6 +155,7 @@ export default function HomePage() {
         if (!currentSettings) return;
 
         console.log("Starting training with values:", currentSettings);
+        console.log("Active mode:", isPomodoroMode ? "pomodoro" : "training");
 
         // Validate values before starting
         if (
@@ -157,7 +173,7 @@ export default function HomePage() {
         setIsSessionEnded(false);
         setIsLastInterval(false);
         setNewInterval();
-    }, [currentSettings]);
+    }, [currentSettings, isPomodoroMode]);
 
     const stopTraining = useCallback(() => {
         setIsActive(false);
