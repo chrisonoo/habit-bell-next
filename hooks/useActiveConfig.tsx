@@ -122,13 +122,19 @@ export function ActiveConfigProvider({ children }: { children: ReactNode }) {
         if (typeof window !== "undefined") {
             const savedConfig =
                 localStorage.getItem("activeConfig") || "training";
-            loadSettings(savedConfig);
-            setIsReady(true);
             return savedConfig;
         }
-        setIsReady(true);
         return "training";
     });
+
+    // Initialize settings only once when component mounts
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            setIsReady(false);
+            loadSettings(activeConfig);
+            setIsReady(true);
+        }
+    }, []); // Empty dependency array means this runs once on mount
 
     const updateActiveConfig = useCallback(
         (newConfig: string) => {
@@ -143,7 +149,7 @@ export function ActiveConfigProvider({ children }: { children: ReactNode }) {
         [loadSettings]
     );
 
-    // Update settings when active config changes
+    // Update settings only when activeConfig changes (mode switch)
     useEffect(() => {
         if (typeof window !== "undefined" && activeConfig) {
             loadSettings(activeConfig);

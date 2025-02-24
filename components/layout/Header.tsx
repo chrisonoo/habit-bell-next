@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+    Sheet,
+    SheetContent,
+    SheetTrigger,
+    SheetTitle,
+    SheetDescription,
+} from "@/components/ui/sheet";
 import { Menu, Bell, Dumbbell, Settings } from "lucide-react";
 import Link from "next/link";
 import { ConfigSelector } from "../settings/ConfigSelector";
@@ -40,7 +46,11 @@ export function Header() {
                     </Button>
                 </SheetTrigger>
                 <SheetContent className="flex flex-col w-[250px] sm:w-[300px]">
-                    <div className="pt-8 flex-grow">
+                    <div className="flex flex-col flex-1">
+                        <SheetTitle>Menu</SheetTitle>
+                        <SheetDescription>
+                            Navigation and settings
+                        </SheetDescription>
                         <nav className="flex flex-col space-y-2">
                             <Link href="/" passHref>
                                 <Button
