@@ -7,8 +7,8 @@ export const CONFIG = {
     // Interval settings
     DEFAULT_MIN_INTERVAL: 5 * 60,
     DEFAULT_MAX_INTERVAL: 60 * 30,
-    MIN_INTERVAL: 10 * 60,
-    MAX_INTERVAL: 10 * 60,
+    MIN_INTERVAL: 5 * 60,
+    MAX_INTERVAL: 60 * 30,
     STEP_INTERVAL: 5 * 60,
 
     // Pause durations

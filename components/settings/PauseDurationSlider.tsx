@@ -1,3 +1,5 @@
+"use client";
+
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 
@@ -15,7 +17,7 @@ interface PauseDurationSliderProps {
 export function PauseDurationSlider({
     id,
     label,
-    value = 0,
+    value,
     setValue,
     min,
     max,
@@ -23,35 +25,18 @@ export function PauseDurationSlider({
     isTraining,
 }: PauseDurationSliderProps) {
     return (
-        <div className="space-y-4">
-            <Label
-                htmlFor={id}
-                className="text-base sm:text-lg flex justify-between"
-            >
-                <span>
-                    {label}: {value?.toFixed(1) ?? "0.0"}s
-                </span>
-                <span className="text-xs sm:text-sm text-muted-foreground">
-                    [step {step} s]
-                </span>
-            </Label>
-            <div className="flex items-center">
-                <span className="text-sm text-muted-foreground mr-2">
-                    {min}
-                </span>
-                <Slider
-                    id={id}
-                    min={min}
-                    max={max}
-                    step={step}
-                    value={[value]}
-                    onValueChange={(newValue) => setValue(newValue[0])}
-                    disabled={isTraining}
-                />
-                <span className="text-sm text-muted-foreground ml-2">
-                    {max}
-                </span>
-            </div>
+        <div className="space-y-2">
+            <Label htmlFor={id}>{label} (seconds)</Label>
+            <Slider
+                id={id}
+                min={min}
+                max={max}
+                step={step}
+                value={[value]}
+                onValueChange={(value) => setValue(value[0])}
+                disabled={isTraining}
+            />
+            <div className="text-sm text-muted-foreground">{value} seconds</div>
         </div>
     );
 }

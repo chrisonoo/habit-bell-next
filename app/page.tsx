@@ -13,23 +13,20 @@ import { useActiveConfig } from "@/hooks/useActiveConfig";
 
 export default function HomePage() {
     const { activeConfig, isPomodoroMode } = useActiveConfig();
-    const CONFIG = isPomodoroMode ? POMODORO_CONFIG : TRAINING_CONFIG;
 
     const [settings, setSettings] = useState(() => {
         if (typeof window !== "undefined") {
             const savedSettings = localStorage.getItem(
                 isPomodoroMode ? "pomodoroSettings" : "trainingSettings"
             );
-            return savedSettings
-                ? JSON.parse(savedSettings)
-                : {
-                      sessionDuration: CONFIG.DEFAULT_SESSION_DURATION,
-                      minInterval: CONFIG.DEFAULT_MIN_INTERVAL,
-                      maxInterval: CONFIG.DEFAULT_MAX_INTERVAL,
-                      pause1Duration: CONFIG.DEFAULT_PAUSE1_DURATION,
-                      pause2Duration: CONFIG.DEFAULT_PAUSE2_DURATION,
-                      isThirdSoundEnabled: CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
-                  };
+            if (!savedSettings) {
+                // If no settings found, redirect to settings page
+                window.location.href = isPomodoroMode
+                    ? "/settings-pomodoro"
+                    : "/settings-training";
+                return {};
+            }
+            return JSON.parse(savedSettings);
         }
         return {};
     });
@@ -48,7 +45,7 @@ export default function HomePage() {
         typeof window !== "undefined" &&
         settings.isThirdSoundEnabled !== undefined
             ? settings.isThirdSoundEnabled
-            : CONFIG.DEFAULT_THIRD_SOUND_ENABLED
+            : false
     );
     const [audioFailed, setAudioFailed] = useState(false);
     const [audioFailed2, setAudioFailed2] = useState(false);
@@ -56,27 +53,27 @@ export default function HomePage() {
     const [pause1Duration, setPause1Duration] = useState(() =>
         typeof window !== "undefined" && settings.pause1Duration !== undefined
             ? settings.pause1Duration
-            : CONFIG.DEFAULT_PAUSE1_DURATION
+            : 0
     );
     const [pause2Duration, setPause2Duration] = useState(() =>
         typeof window !== "undefined" && settings.pause2Duration !== undefined
             ? settings.pause2Duration
-            : CONFIG.DEFAULT_PAUSE2_DURATION
+            : 0
     );
     const [sessionDuration, setSessionDuration] = useState(() =>
         typeof window !== "undefined" && settings.sessionDuration !== undefined
             ? settings.sessionDuration
-            : CONFIG.DEFAULT_SESSION_DURATION
+            : 0
     );
     const [minInterval, setMinInterval] = useState(() =>
         typeof window !== "undefined" && settings.minInterval !== undefined
             ? settings.minInterval
-            : CONFIG.DEFAULT_MIN_INTERVAL
+            : 0
     );
     const [maxInterval, setMaxInterval] = useState(() =>
         typeof window !== "undefined" && settings.maxInterval !== undefined
             ? settings.maxInterval
-            : CONFIG.DEFAULT_MAX_INTERVAL
+            : 0
     );
 
     const audioRefs = useRef<HTMLAudioElement[]>([]);
@@ -128,12 +125,12 @@ export default function HomePage() {
     useEffect(() => {
         const initAudio = async () => {
             try {
-                audioRefs.current = CONFIG.AUDIO_URLS.GONG1.map(
+                audioRefs.current = TRAINING_CONFIG.AUDIO_URLS.GONG1.map(
                     (url) => new Audio(url)
                 );
-                audio2Ref.current = new Audio(CONFIG.AUDIO_URLS.GONG2);
-                audio3Ref.current = new Audio(CONFIG.AUDIO_URLS.GONG3);
-                audio4Ref.current = new Audio(CONFIG.AUDIO_URLS.GONG4);
+                audio2Ref.current = new Audio(TRAINING_CONFIG.AUDIO_URLS.GONG2);
+                audio3Ref.current = new Audio(TRAINING_CONFIG.AUDIO_URLS.GONG3);
+                audio4Ref.current = new Audio(TRAINING_CONFIG.AUDIO_URLS.GONG4);
 
                 // Initialize all GONG1 sounds
                 for (const audio of audioRefs.current) {
@@ -498,22 +495,23 @@ export default function HomePage() {
     }, []);
 
     const resetToDefaults = useCallback(() => {
-        setSessionDuration(CONFIG.DEFAULT_SESSION_DURATION);
-        setMinInterval(CONFIG.DEFAULT_MIN_INTERVAL);
-        setMaxInterval(CONFIG.DEFAULT_MAX_INTERVAL);
-        setPause1Duration(CONFIG.DEFAULT_PAUSE1_DURATION);
-        setPause2Duration(CONFIG.DEFAULT_PAUSE2_DURATION);
-        setIsThirdSoundEnabled(CONFIG.DEFAULT_THIRD_SOUND_ENABLED);
+        setSessionDuration(TRAINING_CONFIG.DEFAULT_SESSION_DURATION);
+        setMinInterval(TRAINING_CONFIG.DEFAULT_MIN_INTERVAL);
+        setMaxInterval(TRAINING_CONFIG.DEFAULT_MAX_INTERVAL);
+        setPause1Duration(TRAINING_CONFIG.DEFAULT_PAUSE1_DURATION);
+        setPause2Duration(TRAINING_CONFIG.DEFAULT_PAUSE2_DURATION);
+        setIsThirdSoundEnabled(TRAINING_CONFIG.DEFAULT_THIRD_SOUND_ENABLED);
 
         // Update localStorage with default settings
         if (typeof window !== "undefined") {
             const defaultSettings = {
-                sessionDuration: CONFIG.DEFAULT_SESSION_DURATION,
-                minInterval: CONFIG.DEFAULT_MIN_INTERVAL,
-                maxInterval: CONFIG.DEFAULT_MAX_INTERVAL,
-                pause1Duration: CONFIG.DEFAULT_PAUSE1_DURATION,
-                pause2Duration: CONFIG.DEFAULT_PAUSE2_DURATION,
-                isThirdSoundEnabled: CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
+                sessionDuration: TRAINING_CONFIG.DEFAULT_SESSION_DURATION,
+                minInterval: TRAINING_CONFIG.DEFAULT_MIN_INTERVAL,
+                maxInterval: TRAINING_CONFIG.DEFAULT_MAX_INTERVAL,
+                pause1Duration: TRAINING_CONFIG.DEFAULT_PAUSE1_DURATION,
+                pause2Duration: TRAINING_CONFIG.DEFAULT_PAUSE2_DURATION,
+                isThirdSoundEnabled:
+                    TRAINING_CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
             };
             localStorage.setItem(
                 isPomodoroMode ? "pomodoroSettings" : "trainingSettings",
@@ -528,20 +526,28 @@ export default function HomePage() {
             const savedSettings = localStorage.getItem(
                 isPomodoroMode ? "pomodoroSettings" : "trainingSettings"
             );
-            if (savedSettings) {
-                setSettings(JSON.parse(savedSettings));
-            } else {
-                setSettings({
-                    sessionDuration: CONFIG.DEFAULT_SESSION_DURATION,
-                    minInterval: CONFIG.DEFAULT_MIN_INTERVAL,
-                    maxInterval: CONFIG.DEFAULT_MAX_INTERVAL,
-                    pause1Duration: CONFIG.DEFAULT_PAUSE1_DURATION,
-                    pause2Duration: CONFIG.DEFAULT_PAUSE2_DURATION,
-                    isThirdSoundEnabled: CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
-                });
-            }
+            const parsedSettings = savedSettings
+                ? JSON.parse(savedSettings)
+                : {
+                      sessionDuration: TRAINING_CONFIG.DEFAULT_SESSION_DURATION,
+                      minInterval: TRAINING_CONFIG.DEFAULT_MIN_INTERVAL,
+                      maxInterval: TRAINING_CONFIG.DEFAULT_MAX_INTERVAL,
+                      pause1Duration: TRAINING_CONFIG.DEFAULT_PAUSE1_DURATION,
+                      pause2Duration: TRAINING_CONFIG.DEFAULT_PAUSE2_DURATION,
+                      isThirdSoundEnabled:
+                          TRAINING_CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
+                  };
+
+            // Update all states with new settings
+            setSettings(parsedSettings);
+            setSessionDuration(parsedSettings.sessionDuration);
+            setMinInterval(parsedSettings.minInterval);
+            setMaxInterval(parsedSettings.maxInterval);
+            setPause1Duration(parsedSettings.pause1Duration);
+            setPause2Duration(parsedSettings.pause2Duration);
+            setIsThirdSoundEnabled(parsedSettings.isThirdSoundEnabled);
         }
-    }, [activeConfig, CONFIG]);
+    }, [activeConfig, TRAINING_CONFIG, isPomodoroMode]);
 
     return (
         <div className="flex-1 flex items-center justify-center p-4">

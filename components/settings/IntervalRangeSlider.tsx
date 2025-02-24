@@ -3,13 +3,15 @@
 import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { DualRangeSlider } from "@/components/ui/dual-range-slider";
-import { CONFIG } from "@/lib/config";
 
 interface IntervalRangeSliderProps {
     minInterval: number;
     maxInterval: number;
     setMinInterval: (value: number) => void;
     setMaxInterval: (value: number) => void;
+    stepInterval: number;
+    defaultMinInterval: number;
+    defaultMaxInterval: number;
     isTraining: boolean;
 }
 
@@ -18,6 +20,9 @@ export function IntervalRangeSlider({
     maxInterval,
     setMinInterval,
     setMaxInterval,
+    stepInterval,
+    defaultMinInterval,
+    defaultMaxInterval,
     isTraining,
 }: IntervalRangeSliderProps) {
     const [mounted, setMounted] = useState(false);
@@ -40,17 +45,17 @@ export function IntervalRangeSlider({
                     Interval Range: {minInterval}s - {maxInterval}s
                 </span>
                 <span className="text-xs sm:text-sm text-muted-foreground">
-                    [step {CONFIG.STEP_INTERVAL} s]
+                    [step {stepInterval} s]
                 </span>
             </Label>
             <div className="flex items-center">
                 <span className="text-sm text-muted-foreground mr-2">
-                    {CONFIG.MIN_INTERVAL}
+                    {defaultMinInterval}
                 </span>
                 <DualRangeSlider
-                    min={CONFIG.MIN_INTERVAL}
-                    max={CONFIG.MAX_INTERVAL}
-                    step={CONFIG.STEP_INTERVAL}
+                    min={defaultMinInterval}
+                    max={defaultMaxInterval}
+                    step={stepInterval}
                     defaultValue={[minInterval, maxInterval]}
                     onValueChange={(value) => {
                         setMinInterval(value[0]);
@@ -59,7 +64,7 @@ export function IntervalRangeSlider({
                     disabled={isTraining}
                 />
                 <span className="text-sm text-muted-foreground ml-2">
-                    {CONFIG.MAX_INTERVAL}
+                    {defaultMaxInterval}
                 </span>
             </div>
         </div>

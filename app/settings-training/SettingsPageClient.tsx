@@ -11,11 +11,29 @@ import { ResetButton } from "@/components/settings/ResetButton";
 import { CONFIG } from "@/lib/config";
 
 interface Settings {
+    // Session settings
     sessionDuration: number;
+    maxSessionDuration: number;
+    stepSessionDuration: number;
+
+    // Interval settings
     minInterval: number;
     maxInterval: number;
+    stepInterval: number;
+    defaultMinInterval: number;
+    defaultMaxInterval: number;
+
+    // Pause durations
     pause1Duration: number;
+    maxPause1Duration: number;
+    minPause1Duration: number;
+    stepPause1Duration: number;
     pause2Duration: number;
+    maxPause2Duration: number;
+    minPause2Duration: number;
+    stepPause2Duration: number;
+
+    // Other settings
     isThirdSoundEnabled: boolean;
 }
 
@@ -26,20 +44,56 @@ export default function SettingsPageClient() {
             return savedSettings
                 ? JSON.parse(savedSettings)
                 : {
+                      // Session settings
                       sessionDuration: CONFIG.DEFAULT_SESSION_DURATION,
+                      maxSessionDuration: CONFIG.MAX_SESSION_DURATION,
+                      stepSessionDuration: CONFIG.STEP_SESSION_DURATION,
+
+                      // Interval settings
                       minInterval: CONFIG.DEFAULT_MIN_INTERVAL,
                       maxInterval: CONFIG.DEFAULT_MAX_INTERVAL,
+                      stepInterval: CONFIG.STEP_INTERVAL,
+                      defaultMinInterval: CONFIG.MIN_INTERVAL,
+                      defaultMaxInterval: CONFIG.MAX_INTERVAL,
+
+                      // Pause durations
                       pause1Duration: CONFIG.DEFAULT_PAUSE1_DURATION,
+                      maxPause1Duration: CONFIG.MAX_PAUSE1_DURATION,
+                      minPause1Duration: CONFIG.MIN_PAUSE1_DURATION,
+                      stepPause1Duration: CONFIG.STEP_PAUSE1_DURATION,
                       pause2Duration: CONFIG.DEFAULT_PAUSE2_DURATION,
+                      maxPause2Duration: CONFIG.MAX_PAUSE2_DURATION,
+                      minPause2Duration: CONFIG.MIN_PAUSE2_DURATION,
+                      stepPause2Duration: CONFIG.STEP_PAUSE2_DURATION,
+
+                      // Other settings
                       isThirdSoundEnabled: CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
                   };
         }
         return {
+            // Session settings
             sessionDuration: CONFIG.DEFAULT_SESSION_DURATION,
+            maxSessionDuration: CONFIG.MAX_SESSION_DURATION,
+            stepSessionDuration: CONFIG.STEP_SESSION_DURATION,
+
+            // Interval settings
             minInterval: CONFIG.DEFAULT_MIN_INTERVAL,
             maxInterval: CONFIG.DEFAULT_MAX_INTERVAL,
+            stepInterval: CONFIG.STEP_INTERVAL,
+            defaultMinInterval: CONFIG.MIN_INTERVAL,
+            defaultMaxInterval: CONFIG.MAX_INTERVAL,
+
+            // Pause durations
             pause1Duration: CONFIG.DEFAULT_PAUSE1_DURATION,
+            maxPause1Duration: CONFIG.MAX_PAUSE1_DURATION,
+            minPause1Duration: CONFIG.MIN_PAUSE1_DURATION,
+            stepPause1Duration: CONFIG.STEP_PAUSE1_DURATION,
             pause2Duration: CONFIG.DEFAULT_PAUSE2_DURATION,
+            maxPause2Duration: CONFIG.MAX_PAUSE2_DURATION,
+            minPause2Duration: CONFIG.MIN_PAUSE2_DURATION,
+            stepPause2Duration: CONFIG.STEP_PAUSE2_DURATION,
+
+            // Other settings
             isThirdSoundEnabled: CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
         };
     });
@@ -113,10 +167,21 @@ export default function SettingsPageClient() {
     const resetToDefaults = useCallback(() => {
         const defaultSettings: Settings = {
             sessionDuration: CONFIG.DEFAULT_SESSION_DURATION,
+            maxSessionDuration: CONFIG.MAX_SESSION_DURATION,
+            stepSessionDuration: CONFIG.STEP_SESSION_DURATION,
             minInterval: CONFIG.DEFAULT_MIN_INTERVAL,
             maxInterval: CONFIG.DEFAULT_MAX_INTERVAL,
+            stepInterval: CONFIG.STEP_INTERVAL,
+            defaultMinInterval: CONFIG.MIN_INTERVAL,
+            defaultMaxInterval: CONFIG.MAX_INTERVAL,
             pause1Duration: CONFIG.DEFAULT_PAUSE1_DURATION,
+            maxPause1Duration: CONFIG.MAX_PAUSE1_DURATION,
+            minPause1Duration: CONFIG.MIN_PAUSE1_DURATION,
+            stepPause1Duration: CONFIG.STEP_PAUSE1_DURATION,
             pause2Duration: CONFIG.DEFAULT_PAUSE2_DURATION,
+            maxPause2Duration: CONFIG.MAX_PAUSE2_DURATION,
+            minPause2Duration: CONFIG.MIN_PAUSE2_DURATION,
+            stepPause2Duration: CONFIG.STEP_PAUSE2_DURATION,
             isThirdSoundEnabled: CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
         };
         setSettings(defaultSettings);
@@ -176,6 +241,8 @@ export default function SettingsPageClient() {
                     setSessionDuration={(value) =>
                         updateSetting("sessionDuration", value)
                     }
+                    maxSessionDuration={settings.maxSessionDuration}
+                    stepSessionDuration={settings.stepSessionDuration}
                     isTraining={false}
                 />
                 <IntervalRangeSlider
@@ -187,6 +254,9 @@ export default function SettingsPageClient() {
                     setMaxInterval={(value) =>
                         updateSetting("maxInterval", value)
                     }
+                    stepInterval={settings.stepInterval}
+                    defaultMinInterval={settings.defaultMinInterval}
+                    defaultMaxInterval={settings.defaultMaxInterval}
                     isTraining={false}
                 />
                 <PauseDurationSlider
@@ -194,9 +264,9 @@ export default function SettingsPageClient() {
                     label="Pause 1 Duration"
                     value={settings.pause1Duration}
                     setValue={(value) => updateSetting("pause1Duration", value)}
-                    min={CONFIG.MIN_PAUSE1_DURATION}
-                    max={CONFIG.MAX_PAUSE1_DURATION}
-                    step={CONFIG.STEP_PAUSE1_DURATION}
+                    min={settings.minPause1Duration}
+                    max={settings.maxPause1Duration}
+                    step={settings.stepPause1Duration}
                     isTraining={false}
                 />
                 <PauseDurationSlider
@@ -204,9 +274,9 @@ export default function SettingsPageClient() {
                     label="Pause 2 Duration"
                     value={settings.pause2Duration}
                     setValue={(value) => updateSetting("pause2Duration", value)}
-                    min={CONFIG.MIN_PAUSE2_DURATION}
-                    max={CONFIG.MAX_PAUSE2_DURATION}
-                    step={CONFIG.STEP_PAUSE2_DURATION}
+                    min={settings.minPause2Duration}
+                    max={settings.maxPause2Duration}
+                    step={settings.stepPause2Duration}
                     isTraining={false}
                 />
                 <ThirdSoundToggle
