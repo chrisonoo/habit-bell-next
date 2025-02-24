@@ -13,6 +13,7 @@ import { useActiveConfig } from "@/hooks/useActiveConfig";
 
 export default function HomePage() {
     const { activeConfig, isPomodoroMode } = useActiveConfig();
+    const CONFIG = isPomodoroMode ? POMODORO_CONFIG : TRAINING_CONFIG;
 
     const [settings, setSettings] = useState(() => {
         if (typeof window !== "undefined") {
@@ -100,11 +101,29 @@ export default function HomePage() {
         // Save settings to localStorage whenever they change
         if (typeof window !== "undefined") {
             const settingsToSave = {
+                // Session settings
                 sessionDuration,
+                maxSessionDuration: CONFIG.MAX_SESSION_DURATION,
+                stepSessionDuration: CONFIG.STEP_SESSION_DURATION,
+
+                // Interval settings
                 minInterval,
                 maxInterval,
+                stepInterval: CONFIG.STEP_INTERVAL,
+                defaultMinInterval: CONFIG.MIN_INTERVAL,
+                defaultMaxInterval: CONFIG.MAX_INTERVAL,
+
+                // Pause durations
                 pause1Duration,
+                maxPause1Duration: CONFIG.MAX_PAUSE1_DURATION,
+                minPause1Duration: CONFIG.MIN_PAUSE1_DURATION,
+                stepPause1Duration: CONFIG.STEP_PAUSE1_DURATION,
                 pause2Duration,
+                maxPause2Duration: CONFIG.MAX_PAUSE2_DURATION,
+                minPause2Duration: CONFIG.MIN_PAUSE2_DURATION,
+                stepPause2Duration: CONFIG.STEP_PAUSE2_DURATION,
+
+                // Other settings
                 isThirdSoundEnabled,
             };
             localStorage.setItem(
@@ -120,6 +139,7 @@ export default function HomePage() {
         pause2Duration,
         isThirdSoundEnabled,
         isPomodoroMode,
+        CONFIG,
     ]);
 
     useEffect(() => {
@@ -495,30 +515,50 @@ export default function HomePage() {
     }, []);
 
     const resetToDefaults = useCallback(() => {
-        setSessionDuration(TRAINING_CONFIG.DEFAULT_SESSION_DURATION);
-        setMinInterval(TRAINING_CONFIG.DEFAULT_MIN_INTERVAL);
-        setMaxInterval(TRAINING_CONFIG.DEFAULT_MAX_INTERVAL);
-        setPause1Duration(TRAINING_CONFIG.DEFAULT_PAUSE1_DURATION);
-        setPause2Duration(TRAINING_CONFIG.DEFAULT_PAUSE2_DURATION);
-        setIsThirdSoundEnabled(TRAINING_CONFIG.DEFAULT_THIRD_SOUND_ENABLED);
+        const defaultSettings = {
+            // Session settings
+            sessionDuration: CONFIG.DEFAULT_SESSION_DURATION,
+            maxSessionDuration: CONFIG.MAX_SESSION_DURATION,
+            stepSessionDuration: CONFIG.STEP_SESSION_DURATION,
 
-        // Update localStorage with default settings
+            // Interval settings
+            minInterval: CONFIG.DEFAULT_MIN_INTERVAL,
+            maxInterval: CONFIG.DEFAULT_MAX_INTERVAL,
+            stepInterval: CONFIG.STEP_INTERVAL,
+            defaultMinInterval: CONFIG.MIN_INTERVAL,
+            defaultMaxInterval: CONFIG.MAX_INTERVAL,
+
+            // Pause durations
+            pause1Duration: CONFIG.DEFAULT_PAUSE1_DURATION,
+            maxPause1Duration: CONFIG.MAX_PAUSE1_DURATION,
+            minPause1Duration: CONFIG.MIN_PAUSE1_DURATION,
+            stepPause1Duration: CONFIG.STEP_PAUSE1_DURATION,
+            pause2Duration: CONFIG.DEFAULT_PAUSE2_DURATION,
+            maxPause2Duration: CONFIG.MAX_PAUSE2_DURATION,
+            minPause2Duration: CONFIG.MIN_PAUSE2_DURATION,
+            stepPause2Duration: CONFIG.STEP_PAUSE2_DURATION,
+
+            // Other settings
+            isThirdSoundEnabled: CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
+        };
+
+        // Update all states
+        setSettings(defaultSettings);
+        setSessionDuration(defaultSettings.sessionDuration);
+        setMinInterval(defaultSettings.minInterval);
+        setMaxInterval(defaultSettings.maxInterval);
+        setPause1Duration(defaultSettings.pause1Duration);
+        setPause2Duration(defaultSettings.pause2Duration);
+        setIsThirdSoundEnabled(defaultSettings.isThirdSoundEnabled);
+
+        // Save complete settings to localStorage
         if (typeof window !== "undefined") {
-            const defaultSettings = {
-                sessionDuration: TRAINING_CONFIG.DEFAULT_SESSION_DURATION,
-                minInterval: TRAINING_CONFIG.DEFAULT_MIN_INTERVAL,
-                maxInterval: TRAINING_CONFIG.DEFAULT_MAX_INTERVAL,
-                pause1Duration: TRAINING_CONFIG.DEFAULT_PAUSE1_DURATION,
-                pause2Duration: TRAINING_CONFIG.DEFAULT_PAUSE2_DURATION,
-                isThirdSoundEnabled:
-                    TRAINING_CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
-            };
             localStorage.setItem(
                 isPomodoroMode ? "pomodoroSettings" : "trainingSettings",
                 JSON.stringify(defaultSettings)
             );
         }
-    }, [isPomodoroMode]);
+    }, [CONFIG, isPomodoroMode]);
 
     // Watch for configuration changes and update settings
     useEffect(() => {
@@ -526,19 +566,48 @@ export default function HomePage() {
             const savedSettings = localStorage.getItem(
                 isPomodoroMode ? "pomodoroSettings" : "trainingSettings"
             );
-            const parsedSettings = savedSettings
-                ? JSON.parse(savedSettings)
-                : {
-                      sessionDuration: TRAINING_CONFIG.DEFAULT_SESSION_DURATION,
-                      minInterval: TRAINING_CONFIG.DEFAULT_MIN_INTERVAL,
-                      maxInterval: TRAINING_CONFIG.DEFAULT_MAX_INTERVAL,
-                      pause1Duration: TRAINING_CONFIG.DEFAULT_PAUSE1_DURATION,
-                      pause2Duration: TRAINING_CONFIG.DEFAULT_PAUSE2_DURATION,
-                      isThirdSoundEnabled:
-                          TRAINING_CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
-                  };
+            if (!savedSettings) {
+                // If no settings found, redirect to settings page
+                window.location.href = isPomodoroMode
+                    ? "/settings-pomodoro"
+                    : "/settings-training";
+                return;
+            }
 
-            // Update all states with new settings
+            const parsedSettings = JSON.parse(savedSettings);
+
+            // If any of the required settings are missing, redirect to settings page
+            const requiredSettings = [
+                "sessionDuration",
+                "maxSessionDuration",
+                "stepSessionDuration",
+                "minInterval",
+                "maxInterval",
+                "stepInterval",
+                "defaultMinInterval",
+                "defaultMaxInterval",
+                "pause1Duration",
+                "maxPause1Duration",
+                "minPause1Duration",
+                "stepPause1Duration",
+                "pause2Duration",
+                "maxPause2Duration",
+                "minPause2Duration",
+                "stepPause2Duration",
+                "isThirdSoundEnabled",
+            ];
+
+            const hasMissingSettings = requiredSettings.some(
+                (setting) => parsedSettings[setting] === undefined
+            );
+
+            if (hasMissingSettings) {
+                window.location.href = isPomodoroMode
+                    ? "/settings-pomodoro"
+                    : "/settings-training";
+                return;
+            }
+
             setSettings(parsedSettings);
             setSessionDuration(parsedSettings.sessionDuration);
             setMinInterval(parsedSettings.minInterval);
@@ -547,7 +616,7 @@ export default function HomePage() {
             setPause2Duration(parsedSettings.pause2Duration);
             setIsThirdSoundEnabled(parsedSettings.isThirdSoundEnabled);
         }
-    }, [activeConfig, TRAINING_CONFIG, isPomodoroMode]);
+    }, [activeConfig, isPomodoroMode]);
 
     return (
         <div className="flex-1 flex items-center justify-center p-4">

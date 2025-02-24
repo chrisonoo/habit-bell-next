@@ -1,13 +1,40 @@
 import { useState, useEffect } from "react";
 import { CONFIG as TRAINING_CONFIG } from "@/lib/config";
 
+interface Settings {
+    // Session settings
+    sessionDuration: number;
+    maxSessionDuration: number;
+    stepSessionDuration: number;
+
+    // Interval settings
+    minInterval: number;
+    maxInterval: number;
+    stepInterval: number;
+    defaultMinInterval: number;
+    defaultMaxInterval: number;
+
+    // Pause durations
+    pause1Duration: number;
+    maxPause1Duration: number;
+    minPause1Duration: number;
+    stepPause1Duration: number;
+    pause2Duration: number;
+    maxPause2Duration: number;
+    minPause2Duration: number;
+    stepPause2Duration: number;
+
+    // Other settings
+    isThirdSoundEnabled: boolean;
+}
+
 export function useActiveConfig() {
     const [activeConfig, setActiveConfig] = useState(() => {
         if (typeof window !== "undefined") {
             const savedConfig = localStorage.getItem("activeConfig");
             if (!savedConfig) {
                 // Initialize with training mode and settings if no configuration exists
-                const defaultTrainingSettings = {
+                const defaultTrainingSettings: Settings = {
                     // Session settings
                     sessionDuration: TRAINING_CONFIG.DEFAULT_SESSION_DURATION,
                     maxSessionDuration: TRAINING_CONFIG.MAX_SESSION_DURATION,
@@ -34,6 +61,8 @@ export function useActiveConfig() {
                     isThirdSoundEnabled:
                         TRAINING_CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
                 };
+
+                // Save default settings and config
                 localStorage.setItem(
                     "trainingSettings",
                     JSON.stringify(defaultTrainingSettings)

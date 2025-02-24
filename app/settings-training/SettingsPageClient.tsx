@@ -41,61 +41,45 @@ export default function SettingsPageClient() {
     const [settings, setSettings] = useState<Settings>(() => {
         if (typeof window !== "undefined") {
             const savedSettings = localStorage.getItem("trainingSettings");
-            return savedSettings
-                ? JSON.parse(savedSettings)
-                : {
-                      // Session settings
-                      sessionDuration: CONFIG.DEFAULT_SESSION_DURATION,
-                      maxSessionDuration: CONFIG.MAX_SESSION_DURATION,
-                      stepSessionDuration: CONFIG.STEP_SESSION_DURATION,
+            if (!savedSettings) {
+                // Initialize with default settings from config
+                const defaultSettings: Settings = {
+                    // Session settings
+                    sessionDuration: CONFIG.DEFAULT_SESSION_DURATION,
+                    maxSessionDuration: CONFIG.MAX_SESSION_DURATION,
+                    stepSessionDuration: CONFIG.STEP_SESSION_DURATION,
 
-                      // Interval settings
-                      minInterval: CONFIG.DEFAULT_MIN_INTERVAL,
-                      maxInterval: CONFIG.DEFAULT_MAX_INTERVAL,
-                      stepInterval: CONFIG.STEP_INTERVAL,
-                      defaultMinInterval: CONFIG.MIN_INTERVAL,
-                      defaultMaxInterval: CONFIG.MAX_INTERVAL,
+                    // Interval settings
+                    minInterval: CONFIG.DEFAULT_MIN_INTERVAL,
+                    maxInterval: CONFIG.DEFAULT_MAX_INTERVAL,
+                    stepInterval: CONFIG.STEP_INTERVAL,
+                    defaultMinInterval: CONFIG.MIN_INTERVAL,
+                    defaultMaxInterval: CONFIG.MAX_INTERVAL,
 
-                      // Pause durations
-                      pause1Duration: CONFIG.DEFAULT_PAUSE1_DURATION,
-                      maxPause1Duration: CONFIG.MAX_PAUSE1_DURATION,
-                      minPause1Duration: CONFIG.MIN_PAUSE1_DURATION,
-                      stepPause1Duration: CONFIG.STEP_PAUSE1_DURATION,
-                      pause2Duration: CONFIG.DEFAULT_PAUSE2_DURATION,
-                      maxPause2Duration: CONFIG.MAX_PAUSE2_DURATION,
-                      minPause2Duration: CONFIG.MIN_PAUSE2_DURATION,
-                      stepPause2Duration: CONFIG.STEP_PAUSE2_DURATION,
+                    // Pause durations
+                    pause1Duration: CONFIG.DEFAULT_PAUSE1_DURATION,
+                    maxPause1Duration: CONFIG.MAX_PAUSE1_DURATION,
+                    minPause1Duration: CONFIG.MIN_PAUSE1_DURATION,
+                    stepPause1Duration: CONFIG.STEP_PAUSE1_DURATION,
+                    pause2Duration: CONFIG.DEFAULT_PAUSE2_DURATION,
+                    maxPause2Duration: CONFIG.MAX_PAUSE2_DURATION,
+                    minPause2Duration: CONFIG.MIN_PAUSE2_DURATION,
+                    stepPause2Duration: CONFIG.STEP_PAUSE2_DURATION,
 
-                      // Other settings
-                      isThirdSoundEnabled: CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
-                  };
+                    // Other settings
+                    isThirdSoundEnabled: CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
+                };
+                // Save default settings to storage immediately
+                localStorage.setItem(
+                    "trainingSettings",
+                    JSON.stringify(defaultSettings)
+                );
+                return defaultSettings;
+            }
+            return JSON.parse(savedSettings);
         }
-        return {
-            // Session settings
-            sessionDuration: CONFIG.DEFAULT_SESSION_DURATION,
-            maxSessionDuration: CONFIG.MAX_SESSION_DURATION,
-            stepSessionDuration: CONFIG.STEP_SESSION_DURATION,
-
-            // Interval settings
-            minInterval: CONFIG.DEFAULT_MIN_INTERVAL,
-            maxInterval: CONFIG.DEFAULT_MAX_INTERVAL,
-            stepInterval: CONFIG.STEP_INTERVAL,
-            defaultMinInterval: CONFIG.MIN_INTERVAL,
-            defaultMaxInterval: CONFIG.MAX_INTERVAL,
-
-            // Pause durations
-            pause1Duration: CONFIG.DEFAULT_PAUSE1_DURATION,
-            maxPause1Duration: CONFIG.MAX_PAUSE1_DURATION,
-            minPause1Duration: CONFIG.MIN_PAUSE1_DURATION,
-            stepPause1Duration: CONFIG.STEP_PAUSE1_DURATION,
-            pause2Duration: CONFIG.DEFAULT_PAUSE2_DURATION,
-            maxPause2Duration: CONFIG.MAX_PAUSE2_DURATION,
-            minPause2Duration: CONFIG.MIN_PAUSE2_DURATION,
-            stepPause2Duration: CONFIG.STEP_PAUSE2_DURATION,
-
-            // Other settings
-            isThirdSoundEnabled: CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
-        };
+        // Return empty settings for SSR
+        return {} as Settings;
     });
 
     const [isGongPlaying, setIsGongPlaying] = useState(false);
@@ -108,6 +92,7 @@ export default function SettingsPageClient() {
     const audio3Ref = useRef<HTMLAudioElement | null>(null);
     const audio4Ref = useRef<HTMLAudioElement | null>(null);
 
+    // Save settings to localStorage whenever they change
     useEffect(() => {
         if (typeof window !== "undefined") {
             localStorage.setItem("trainingSettings", JSON.stringify(settings));
@@ -166,14 +151,19 @@ export default function SettingsPageClient() {
 
     const resetToDefaults = useCallback(() => {
         const defaultSettings: Settings = {
+            // Session settings
             sessionDuration: CONFIG.DEFAULT_SESSION_DURATION,
             maxSessionDuration: CONFIG.MAX_SESSION_DURATION,
             stepSessionDuration: CONFIG.STEP_SESSION_DURATION,
+
+            // Interval settings
             minInterval: CONFIG.DEFAULT_MIN_INTERVAL,
             maxInterval: CONFIG.DEFAULT_MAX_INTERVAL,
             stepInterval: CONFIG.STEP_INTERVAL,
             defaultMinInterval: CONFIG.MIN_INTERVAL,
             defaultMaxInterval: CONFIG.MAX_INTERVAL,
+
+            // Pause durations
             pause1Duration: CONFIG.DEFAULT_PAUSE1_DURATION,
             maxPause1Duration: CONFIG.MAX_PAUSE1_DURATION,
             minPause1Duration: CONFIG.MIN_PAUSE1_DURATION,
@@ -182,15 +172,11 @@ export default function SettingsPageClient() {
             maxPause2Duration: CONFIG.MAX_PAUSE2_DURATION,
             minPause2Duration: CONFIG.MIN_PAUSE2_DURATION,
             stepPause2Duration: CONFIG.STEP_PAUSE2_DURATION,
+
+            // Other settings
             isThirdSoundEnabled: CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
         };
         setSettings(defaultSettings);
-        if (typeof window !== "undefined") {
-            localStorage.setItem(
-                "trainingSettings",
-                JSON.stringify(defaultSettings)
-            );
-        }
     }, []);
 
     const playTestGong = useCallback((gongNumber: 1 | 2 | 3 | 4) => {
