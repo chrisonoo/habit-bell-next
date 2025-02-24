@@ -13,8 +13,8 @@ export function Header() {
     useEffect(() => {
         const ringInterval = setInterval(() => {
             setIsRinging(true);
-            setTimeout(() => setIsRinging(false), 1400); // Ring for 1.4 seconds
-        }, 10000); // Ring every 10 seconds
+            setTimeout(() => setIsRinging(false), 1600); // Ring for 1.6 seconds
+        }, 5000); // Ring every 5 seconds
 
         return () => clearInterval(ringInterval);
     }, []);
