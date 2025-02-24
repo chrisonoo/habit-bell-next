@@ -45,6 +45,7 @@ interface ActiveConfigContextType {
     isTrainingMode: boolean;
     isReady: boolean;
     currentSettings: Settings | null;
+    loadSettings: (mode: string) => Promise<Settings>;
 }
 
 const ActiveConfigContext = createContext<ActiveConfigContextType | undefined>(
@@ -94,48 +95,33 @@ export function ActiveConfigProvider({ children }: { children: ReactNode }) {
     };
 
     const loadSettings = useCallback((mode: string) => {
-        const settingsKey =
-            mode === "pomodoro" ? "pomodoroSettings" : "trainingSettings";
-        const CONFIG = mode === "pomodoro" ? POMODORO_CONFIG : TRAINING_CONFIG;
+        return new Promise<Settings>((resolve) => {
+            const settingsKey =
+                mode === "pomodoro" ? "pomodoroSettings" : "trainingSettings";
+            const CONFIG =
+                mode === "pomodoro" ? POMODORO_CONFIG : TRAINING_CONFIG;
 
-        try {
-            const savedSettings = localStorage.getItem(settingsKey);
-            if (savedSettings) {
-                const settings = JSON.parse(savedSettings);
-                // Validate that all required fields are present and of correct type
-                if (
-                    typeof settings === "object" &&
-                    settings !== null &&
-                    typeof settings.sessionDuration === "number" &&
-                    typeof settings.maxSessionDuration === "number" &&
-                    typeof settings.stepSessionDuration === "number" &&
-                    typeof settings.minInterval === "number" &&
-                    typeof settings.maxInterval === "number" &&
-                    typeof settings.stepInterval === "number" &&
-                    typeof settings.defaultMinInterval === "number" &&
-                    typeof settings.defaultMaxInterval === "number" &&
-                    typeof settings.pause1Duration === "number" &&
-                    typeof settings.pause2Duration === "number" &&
-                    typeof settings.isThirdSoundEnabled === "boolean"
-                ) {
+            try {
+                const savedSettings = localStorage.getItem(settingsKey);
+                if (savedSettings) {
+                    const settings = JSON.parse(savedSettings);
                     setCurrentSettings(settings);
+                    resolve(settings);
                     return;
                 }
-                console.warn(
-                    "Invalid settings format found in localStorage, using defaults"
-                );
+            } catch (error) {
+                console.error("Error loading settings:", error);
             }
-        } catch (error) {
-            console.error("Error loading settings:", error);
-        }
 
-        // If no valid settings found or validation failed, create and save defaults
-        const defaultSettings = createDefaultSettings(
-            CONFIG,
-            mode as "pomodoro" | "training"
-        );
-        localStorage.setItem(settingsKey, JSON.stringify(defaultSettings));
-        setCurrentSettings(defaultSettings);
+            // If no valid settings found, create and save defaults
+            const defaultSettings = createDefaultSettings(
+                CONFIG,
+                mode as "pomodoro" | "training"
+            );
+            localStorage.setItem(settingsKey, JSON.stringify(defaultSettings));
+            setCurrentSettings(defaultSettings);
+            resolve(defaultSettings);
+        });
     }, []);
 
     const [activeConfig, setActiveConfig] = useState(() => {
@@ -183,6 +169,7 @@ export function ActiveConfigProvider({ children }: { children: ReactNode }) {
         isTrainingMode: activeConfig === "training",
         isReady,
         currentSettings,
+        loadSettings,
     };
 
     return (

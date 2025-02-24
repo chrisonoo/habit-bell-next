@@ -21,8 +21,13 @@ interface Settings {
 }
 
 export default function HomePage() {
-    const { activeConfig, isPomodoroMode, isReady, currentSettings } =
-        useActiveConfig();
+    const {
+        activeConfig,
+        isPomodoroMode,
+        isReady,
+        currentSettings,
+        loadSettings,
+    } = useActiveConfig();
     const CONFIG = isPomodoroMode ? POMODORO_CONFIG : TRAINING_CONFIG;
 
     // Initialize with loading state
@@ -154,26 +159,32 @@ export default function HomePage() {
     const startTraining = useCallback(() => {
         if (!currentSettings) return;
 
-        console.log("Starting training with values:", currentSettings);
-        console.log("Active mode:", isPomodoroMode ? "pomodoro" : "training");
+        // Reload current settings based on active mode and wait for them to be loaded
+        loadSettings(activeConfig).then((settings) => {
+            console.log("Starting training with values:", settings);
+            console.log(
+                "Active mode:",
+                isPomodoroMode ? "pomodoro" : "training"
+            );
 
-        // Validate values before starting
-        if (
-            currentSettings.sessionDuration <= 0 ||
-            currentSettings.minInterval <= 0 ||
-            currentSettings.maxInterval <= 0
-        ) {
-            console.error("Invalid training values");
-            return;
-        }
+            // Validate values before starting
+            if (
+                settings.sessionDuration <= 0 ||
+                settings.minInterval <= 0 ||
+                settings.maxInterval <= 0
+            ) {
+                console.error("Invalid training values");
+                return;
+            }
 
-        setIsActive(true);
-        setIsTraining(true);
-        setSessionTimeLeft(currentSettings.sessionDuration * 60);
-        setIsSessionEnded(false);
-        setIsLastInterval(false);
-        setNewInterval();
-    }, [currentSettings, isPomodoroMode]);
+            setIsActive(true);
+            setIsTraining(true);
+            setSessionTimeLeft(settings.sessionDuration * 60);
+            setIsSessionEnded(false);
+            setIsLastInterval(false);
+            setNewInterval();
+        });
+    }, [currentSettings, isPomodoroMode, activeConfig, loadSettings]);
 
     const stopTraining = useCallback(() => {
         setIsActive(false);
