@@ -13,6 +13,7 @@ import { Menu, Bell, Dumbbell, Settings } from "lucide-react";
 import Link from "next/link";
 import { ConfigSelector } from "../settings/ConfigSelector";
 import { useActiveConfig } from "@/hooks/useActiveConfig";
+import { ThemeSwitcher } from "../theme/ThemeSwitcher";
 
 interface HeaderContextType {
     isHeaderVisible: boolean;
@@ -58,8 +59,10 @@ export function Header() {
     if (!isHeaderVisible) return null;
 
     return (
-        <header className="flex items-center justify-between p-4 border-b">
-            <div className="w-10" />
+        <header className="flex items-center justify-between p-4 border-b dark:border-gray-800">
+            <div className="w-10">
+                <ThemeSwitcher />
+            </div>
             <Link href="/" className="flex items-center space-x-2">
                 <Bell
                     className={`h-8 w-8 text-primary animate-bell ${
@@ -74,7 +77,7 @@ export function Header() {
                         <Menu className="h-6 w-6" />
                     </Button>
                 </SheetTrigger>
-                <SheetContent className="flex flex-col w-[250px] sm:w-[300px]">
+                <SheetContent className="flex flex-col w-[250px] sm:w-[300px] dark:border-gray-800">
                     <div className="flex flex-col flex-1">
                         <SheetTitle className="my-4">Menu</SheetTitle>
                         <nav className="flex flex-col space-y-2">
@@ -115,7 +118,7 @@ export function Header() {
                             activeConfig={activeConfig}
                             onConfigChange={updateActiveConfig}
                         />
-                        <div className="border-t pt-4 text-center mt-4">
+                        <div className="border-t dark:border-gray-800 pt-4 text-center mt-4">
                             <p className="text-sm text-muted-foreground">
                                 © {new Date().getFullYear()} Habit Bell
                             </p>
