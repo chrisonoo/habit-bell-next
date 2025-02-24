@@ -5,10 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Bell, Dumbbell, Settings } from "lucide-react";
 import Link from "next/link";
+import { ConfigSelector } from "../settings/ConfigSelector";
+import { useActiveConfig } from "@/hooks/useActiveConfig";
 
 export function Header() {
     const [isOpen, setIsOpen] = useState(false);
     const [isRinging, setIsRinging] = useState(false);
+    const { activeConfig, updateActiveConfig } = useActiveConfig();
 
     useEffect(() => {
         const ringInterval = setInterval(() => {
@@ -71,13 +74,19 @@ export function Header() {
                             </Link>
                         </nav>
                     </div>
-                    <div className="border-t pt-4 mt-auto text-center">
-                        <p className="text-sm text-muted-foreground">
-                            © {new Date().getFullYear()} Habit Bell
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Inspired by Pavlovian conditioning
-                        </p>
+                    <div className="mt-auto">
+                        <ConfigSelector
+                            activeConfig={activeConfig}
+                            onConfigChange={updateActiveConfig}
+                        />
+                        <div className="border-t pt-4 text-center">
+                            <p className="text-sm text-muted-foreground">
+                                © {new Date().getFullYear()} Habit Bell
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Inspired by Pavlovian conditioning
+                            </p>
+                        </div>
                     </div>
                 </SheetContent>
             </Sheet>

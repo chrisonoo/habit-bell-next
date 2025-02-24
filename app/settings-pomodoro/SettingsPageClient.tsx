@@ -22,7 +22,7 @@ interface Settings {
 export default function SettingsPageClient() {
     const [settings, setSettings] = useState<Settings>(() => {
         if (typeof window !== "undefined") {
-            const savedSettings = localStorage.getItem("habitBellSettings");
+            const savedSettings = localStorage.getItem("pomodoroSettings");
             return savedSettings
                 ? JSON.parse(savedSettings)
                 : {
@@ -56,7 +56,7 @@ export default function SettingsPageClient() {
 
     useEffect(() => {
         if (typeof window !== "undefined") {
-            localStorage.setItem("habitBellSettings", JSON.stringify(settings));
+            localStorage.setItem("pomodoroSettings", JSON.stringify(settings));
         }
     }, [settings]);
 
@@ -120,6 +120,12 @@ export default function SettingsPageClient() {
             isThirdSoundEnabled: CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
         };
         setSettings(defaultSettings);
+        if (typeof window !== "undefined") {
+            localStorage.setItem(
+                "pomodoroSettings",
+                JSON.stringify(defaultSettings)
+            );
+        }
     }, []);
 
     const playTestGong = useCallback((gongNumber: 1 | 2 | 3 | 4) => {

@@ -5,14 +5,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { TrainingStatus } from "@/components/training/TrainingStatus";
 import { SessionTimeLeft } from "@/components/training/SessionTimeLeft";
 import { TrainingButtons } from "@/components/training/TrainingButtons";
-import { CONFIG } from "@/lib/config";
+import { CONFIG as TRAINING_CONFIG } from "@/lib/config";
+import { CONFIG as POMODORO_CONFIG } from "@/lib/config-pomodoro";
 import { cn } from "@/lib/utils";
 import { TrainingClockIcon } from "@/components/training/TrainingClockIcon";
+import { useActiveConfig } from "@/hooks/useActiveConfig";
 
 export default function HomePage() {
+    const { activeConfig, isPomodoroMode } = useActiveConfig();
+    const CONFIG = isPomodoroMode ? POMODORO_CONFIG : TRAINING_CONFIG;
+
     const [settings, setSettings] = useState(() => {
         if (typeof window !== "undefined") {
-            const savedSettings = localStorage.getItem("habitBellSettings");
+            const savedSettings = localStorage.getItem(
+                isPomodoroMode ? "pomodoroSettings" : "trainingSettings"
+            );
             return savedSettings
                 ? JSON.parse(savedSettings)
                 : {
@@ -104,7 +111,7 @@ export default function HomePage() {
                 isThirdSoundEnabled,
             };
             localStorage.setItem(
-                "habitBellSettings",
+                isPomodoroMode ? "pomodoroSettings" : "trainingSettings",
                 JSON.stringify(settingsToSave)
             );
         }
@@ -115,6 +122,7 @@ export default function HomePage() {
         pause1Duration,
         pause2Duration,
         isThirdSoundEnabled,
+        isPomodoroMode,
     ]);
 
     useEffect(() => {
@@ -508,11 +516,32 @@ export default function HomePage() {
                 isThirdSoundEnabled: CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
             };
             localStorage.setItem(
-                "habitBellSettings",
+                isPomodoroMode ? "pomodoroSettings" : "trainingSettings",
                 JSON.stringify(defaultSettings)
             );
         }
-    }, []);
+    }, [isPomodoroMode]);
+
+    // Watch for configuration changes and update settings
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const savedSettings = localStorage.getItem(
+                isPomodoroMode ? "pomodoroSettings" : "trainingSettings"
+            );
+            if (savedSettings) {
+                setSettings(JSON.parse(savedSettings));
+            } else {
+                setSettings({
+                    sessionDuration: CONFIG.DEFAULT_SESSION_DURATION,
+                    minInterval: CONFIG.DEFAULT_MIN_INTERVAL,
+                    maxInterval: CONFIG.DEFAULT_MAX_INTERVAL,
+                    pause1Duration: CONFIG.DEFAULT_PAUSE1_DURATION,
+                    pause2Duration: CONFIG.DEFAULT_PAUSE2_DURATION,
+                    isThirdSoundEnabled: CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
+                });
+            }
+        }
+    }, [activeConfig, CONFIG]);
 
     return (
         <div className="flex-1 flex items-center justify-center p-4">
@@ -524,7 +553,15 @@ export default function HomePage() {
             >
                 <CardContent className="space-y-6 p-6">
                     <div className="text-center flex flex-col justify-center min-h-[7rem]">
-                        {!isTraining && <TrainingClockIcon />}
+                        {!isTraining && (
+                            <>
+                                <TrainingClockIcon />
+                                <div className="text-sm text-muted-foreground mb-4">
+                                    Active Mode:{" "}
+                                    {isPomodoroMode ? "Pomodoro" : "Training"}
+                                </div>
+                            </>
+                        )}
                         <div className="flex-1 flex items-center justify-center">
                             <TrainingStatus
                                 isTraining={isTraining}
