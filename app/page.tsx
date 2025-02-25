@@ -164,34 +164,60 @@ export default function HomePage() {
     ]);
 
     const startTraining = useCallback(() => {
-        if (!currentSettings) return;
+        // Always load the latest settings from localStorage directly
+        const settingsKey = isPomodoroMode
+            ? "pomodoroSettings"
+            : "trainingSettings";
+        let settings;
 
-        // Reload current settings based on active mode and wait for them to be loaded
-        loadSettings(activeConfig).then((settings) => {
-            console.log("Starting training with values:", settings);
-            console.log(
-                "Active mode:",
-                isPomodoroMode ? "pomodoro" : "training"
-            );
-
-            // Validate values before starting
-            if (
-                settings.sessionDuration <= 0 ||
-                settings.minInterval <= 0 ||
-                settings.maxInterval <= 0
-            ) {
-                console.error("Invalid training values");
-                return;
+        try {
+            const savedSettings = localStorage.getItem(settingsKey);
+            if (savedSettings) {
+                settings = JSON.parse(savedSettings);
+                console.log(
+                    "Starting training with latest settings from localStorage:",
+                    settings
+                );
+            } else {
+                // If no settings found in localStorage, use currentSettings as fallback
+                settings = currentSettings;
+                console.log(
+                    "No settings found in localStorage, using current settings:",
+                    settings
+                );
             }
+        } catch (error) {
+            console.error("Error loading settings from localStorage:", error);
+            settings = currentSettings; // Fallback to currentSettings
+        }
 
-            setIsActive(true);
-            setIsTraining(true);
-            setSessionTimeLeft(settings.sessionDuration * 60);
-            setIsSessionEnded(false);
-            setIsLastInterval(false);
-            setNewInterval();
-        });
-    }, [currentSettings, isPomodoroMode, activeConfig, loadSettings]);
+        if (!settings) {
+            console.error("No valid settings available");
+            return;
+        }
+
+        // Validate values before starting
+        if (
+            settings.sessionDuration <= 0 ||
+            settings.minInterval <= 0 ||
+            settings.maxInterval <= 0
+        ) {
+            console.error("Invalid training values");
+            return;
+        }
+
+        console.log("Active mode:", isPomodoroMode ? "pomodoro" : "training");
+
+        // Update currentSettings in the hook to keep it in sync
+        loadSettings(activeConfig);
+
+        setIsActive(true);
+        setIsTraining(true);
+        setSessionTimeLeft(settings.sessionDuration * 60);
+        setIsSessionEnded(false);
+        setIsLastInterval(false);
+        setNewInterval();
+    }, [isPomodoroMode, currentSettings, activeConfig, loadSettings]);
 
     const stopTraining = useCallback(() => {
         setIsActive(false);
@@ -232,38 +258,57 @@ export default function HomePage() {
     }, []);
 
     const setNewInterval = useCallback(() => {
-        if (!currentSettings) return;
+        // Always load the latest settings from localStorage directly
+        const settingsKey = isPomodoroMode
+            ? "pomodoroSettings"
+            : "trainingSettings";
+        let settings;
+
+        try {
+            const savedSettings = localStorage.getItem(settingsKey);
+            if (savedSettings) {
+                settings = JSON.parse(savedSettings);
+            } else {
+                // If no settings found in localStorage, use currentSettings as fallback
+                settings = currentSettings;
+            }
+        } catch (error) {
+            console.error("Error loading settings from localStorage:", error);
+            settings = currentSettings; // Fallback to currentSettings
+        }
+
+        if (!settings) {
+            console.error("No valid settings available");
+            return;
+        }
 
         console.log("Setting new interval with:", {
-            minInterval: currentSettings.minInterval,
-            maxInterval: currentSettings.maxInterval,
+            minInterval: settings.minInterval,
+            maxInterval: settings.maxInterval,
         });
 
         if (
-            currentSettings.minInterval <= 0 ||
-            currentSettings.maxInterval <= 0 ||
-            currentSettings.maxInterval < currentSettings.minInterval
+            settings.minInterval <= 0 ||
+            settings.maxInterval <= 0 ||
+            settings.maxInterval < settings.minInterval
         ) {
             console.error("Invalid interval values:", {
-                minInterval: currentSettings.minInterval,
-                maxInterval: currentSettings.maxInterval,
+                minInterval: settings.minInterval,
+                maxInterval: settings.maxInterval,
             });
             return;
         }
 
         const newInterval = Math.floor(
-            Math.random() *
-                (currentSettings.maxInterval -
-                    currentSettings.minInterval +
-                    1) +
-                currentSettings.minInterval
+            Math.random() * (settings.maxInterval - settings.minInterval + 1) +
+                settings.minInterval
         );
         console.log("Generated new interval:", newInterval);
 
         setCurrentInterval(newInterval);
         setCountdown(newInterval);
         setWaitingForConfirmation(false);
-    }, [currentSettings]);
+    }, [isPomodoroMode, currentSettings]);
 
     const startGong4Loop = useCallback(() => {
         if (!isActiveRef.current || !audio4Ref.current) return;
@@ -281,17 +326,38 @@ export default function HomePage() {
     }, []);
 
     const playThirdGong = useCallback(() => {
-        if (!isActiveRef.current || !currentSettings?.isThirdSoundEnabled) {
+        // Always load the latest settings from localStorage directly
+        const settingsKey = isPomodoroMode
+            ? "pomodoroSettings"
+            : "trainingSettings";
+        let settings;
+
+        try {
+            const savedSettings = localStorage.getItem(settingsKey);
+            if (savedSettings) {
+                settings = JSON.parse(savedSettings);
+            } else {
+                // If no settings found in localStorage, use currentSettings as fallback
+                settings = currentSettings;
+            }
+        } catch (error) {
+            console.error("Error loading settings from localStorage:", error);
+            settings = currentSettings; // Fallback to currentSettings
+        }
+
+        if (!settings) {
+            console.error("No valid settings available");
+            return;
+        }
+
+        if (!isActiveRef.current || !settings.isThirdSoundEnabled) {
             setWaitingForConfirmation(true);
             startGong4Loop();
             return;
         }
         if (audio3Ref.current) {
             gongSequenceTimerRef.current = setTimeout(() => {
-                if (
-                    isActiveRef.current &&
-                    currentSettings?.isThirdSoundEnabled
-                ) {
+                if (isActiveRef.current && settings.isThirdSoundEnabled) {
                     setIsGongPlaying(true);
                     audio3Ref
                         .current!.play()
@@ -316,12 +382,18 @@ export default function HomePage() {
                     setWaitingForConfirmation(true);
                     startGong4Loop();
                 }
-            }, (currentSettings?.pause1Duration || CONFIG.DEFAULT_PAUSE1_DURATION) * 1000);
+            }, (settings.pause1Duration || CONFIG.DEFAULT_PAUSE1_DURATION) * 1000);
         } else {
             setWaitingForConfirmation(true);
             startGong4Loop();
         }
-    }, [currentSettings, CONFIG, startGong4Loop, setWaitingForConfirmation]);
+    }, [
+        isPomodoroMode,
+        currentSettings,
+        CONFIG,
+        startGong4Loop,
+        setWaitingForConfirmation,
+    ]);
 
     const stopGong4 = useCallback(() => {
         if (audio4Ref.current) {
@@ -372,6 +444,31 @@ export default function HomePage() {
 
     const playFirstGong = useCallback(() => {
         if (!isActiveRef.current) return;
+
+        // Always load the latest settings from localStorage directly
+        const settingsKey = isPomodoroMode
+            ? "pomodoroSettings"
+            : "trainingSettings";
+        let settings;
+
+        try {
+            const savedSettings = localStorage.getItem(settingsKey);
+            if (savedSettings) {
+                settings = JSON.parse(savedSettings);
+            } else {
+                // If no settings found in localStorage, use currentSettings as fallback
+                settings = currentSettings;
+            }
+        } catch (error) {
+            console.error("Error loading settings from localStorage:", error);
+            settings = currentSettings; // Fallback to currentSettings
+        }
+
+        if (!settings) {
+            console.error("No valid settings available");
+            return;
+        }
+
         const randomGong = getRandomGong1();
         if (randomGong) {
             setIsGongPlaying(true);
@@ -383,7 +480,7 @@ export default function HomePage() {
                             setIsGongPlaying(false);
                             gongSequenceTimerRef.current = setTimeout(
                                 playSecondGongSequence,
-                                (currentSettings?.pause1Duration ||
+                                (settings.pause1Duration ||
                                     CONFIG.DEFAULT_PAUSE1_DURATION) * 1000
                             );
                         }
@@ -395,7 +492,7 @@ export default function HomePage() {
                         setIsGongPlaying(false);
                         gongSequenceTimerRef.current = setTimeout(
                             playSecondGongSequence,
-                            (currentSettings?.pause1Duration ||
+                            (settings.pause1Duration ||
                                 CONFIG.DEFAULT_PAUSE1_DURATION) * 1000
                         );
                     }
@@ -403,14 +500,39 @@ export default function HomePage() {
         } else {
             gongSequenceTimerRef.current = setTimeout(
                 playSecondGongSequence,
-                (currentSettings?.pause1Duration ||
-                    CONFIG.DEFAULT_PAUSE1_DURATION) * 1000
+                (settings.pause1Duration || CONFIG.DEFAULT_PAUSE1_DURATION) *
+                    1000
             );
         }
-    }, [currentSettings, CONFIG, getRandomGong1]);
+    }, [isPomodoroMode, currentSettings, CONFIG, getRandomGong1]);
 
     const playSecondGongSequence = useCallback(() => {
         if (!isActiveRef.current) return;
+
+        // Always load the latest settings from localStorage directly
+        const settingsKey = isPomodoroMode
+            ? "pomodoroSettings"
+            : "trainingSettings";
+        let settings;
+
+        try {
+            const savedSettings = localStorage.getItem(settingsKey);
+            if (savedSettings) {
+                settings = JSON.parse(savedSettings);
+            } else {
+                // If no settings found in localStorage, use currentSettings as fallback
+                settings = currentSettings;
+            }
+        } catch (error) {
+            console.error("Error loading settings from localStorage:", error);
+            settings = currentSettings; // Fallback to currentSettings
+        }
+
+        if (!settings) {
+            console.error("No valid settings available");
+            return;
+        }
+
         let count = 0;
         const playNextGong = () => {
             if (!isActiveRef.current) return;
@@ -426,12 +548,12 @@ export default function HomePage() {
                                 if (count < 5) {
                                     gongSequenceTimerRef.current = setTimeout(
                                         playNextGong,
-                                        (currentSettings?.pause2Duration ||
+                                        (settings.pause2Duration ||
                                             CONFIG.DEFAULT_PAUSE2_DURATION) *
                                             1000
                                     );
                                 } else {
-                                    if (currentSettings?.isThirdSoundEnabled) {
+                                    if (settings.isThirdSoundEnabled) {
                                         playThirdGong();
                                     } else {
                                         // Set waitingForConfirmation to true to enable the Let's Go button
@@ -450,11 +572,11 @@ export default function HomePage() {
                             if (count < 5) {
                                 gongSequenceTimerRef.current = setTimeout(
                                     playNextGong,
-                                    (currentSettings?.pause2Duration ||
+                                    (settings.pause2Duration ||
                                         CONFIG.DEFAULT_PAUSE2_DURATION) * 1000
                                 );
                             } else {
-                                if (currentSettings?.isThirdSoundEnabled) {
+                                if (settings.isThirdSoundEnabled) {
                                     playThirdGong();
                                 } else {
                                     // Set waitingForConfirmation to true to enable the Let's Go button
@@ -469,11 +591,11 @@ export default function HomePage() {
                 if (count < 5) {
                     gongSequenceTimerRef.current = setTimeout(
                         playNextGong,
-                        (currentSettings?.pause2Duration ||
+                        (settings.pause2Duration ||
                             CONFIG.DEFAULT_PAUSE2_DURATION) * 1000
                     );
                 } else {
-                    if (currentSettings?.isThirdSoundEnabled) {
+                    if (settings.isThirdSoundEnabled) {
                         playThirdGong();
                     } else {
                         // Set waitingForConfirmation to true to enable the Let's Go button
@@ -485,6 +607,7 @@ export default function HomePage() {
         };
         playNextGong();
     }, [
+        isPomodoroMode,
         currentSettings,
         CONFIG,
         playThirdGong,
