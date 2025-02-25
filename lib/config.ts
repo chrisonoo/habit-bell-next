@@ -1,7 +1,7 @@
 export const CONFIG = {
     // Session settings
     DEFAULT_SESSION_DURATION: 5,
-    MAX_SESSION_DURATION: 60,
+    MAX_SESSION_DURATION: 30,
     STEP_SESSION_DURATION: 1,
 
     // Interval settings
@@ -15,20 +15,20 @@ export const CONFIG = {
     DEFAULT_PAUSE1_DURATION: 0.8,
     MAX_PAUSE1_DURATION: 2,
     MIN_PAUSE1_DURATION: 0,
-    STEP_PAUSE1_DURATION: 0.1,
-    DEFAULT_PAUSE2_DURATION: 0.6,
+    STEP_PAUSE1_DURATION: 0.2,
+    DEFAULT_PAUSE2_DURATION: 0.8,
     MAX_PAUSE2_DURATION: 2,
     MIN_PAUSE2_DURATION: 0,
-    STEP_PAUSE2_DURATION: 0.1,
+    STEP_PAUSE2_DURATION: 0.2,
 
     // Audio settings
     AUDIO_URLS: {
         GONG1: [
             "https://cdn.freesound.org/previews/740/740018_9243191-lq.mp3",
-            "https://cdn.freesound.org/previews/395/395213_3784934-lq.mp3",
-            "https://cdn.freesound.org/previews/347/347138_6303715-lq.mp3",
-            "https://cdn.freesound.org/previews/536/536774_1415754-lq.mp3",
-            "https://cdn.freesound.org/previews/56/56242_91374-lq.mp3",
+            // "https://cdn.freesound.org/previews/395/395213_3784934-lq.mp3",
+            // "https://cdn.freesound.org/previews/347/347138_6303715-lq.mp3",
+            // "https://cdn.freesound.org/previews/536/536774_1415754-lq.mp3",
+            // "https://cdn.freesound.org/previews/56/56242_91374-lq.mp3",
         ],
         GONG2: "https://cdn.freesound.org/previews/554/554056_12315704-lq.mp3",
         GONG3: "https://cdn.freesound.org/previews/529/529817_10761583-lq.mp3",

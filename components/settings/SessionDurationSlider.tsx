@@ -31,31 +31,26 @@ export function SessionDurationSlider({
 
     return (
         <div className="space-y-4">
-            <Label
-                htmlFor="session-duration"
-                className="text-base sm:text-lg flex justify-between"
-            >
+            <Label htmlFor="session-duration" className="text-base sm:text-lg">
                 <span>
                     Session: {sessionDuration} minute
                     {sessionDuration !== 1 ? "s" : ""}
                 </span>
-                <span className="text-xs sm:text-sm text-muted-foreground">
-                    [step {stepSessionDuration} min]
-                </span>
             </Label>
+            <Slider
+                id="session-duration"
+                min={stepSessionDuration}
+                max={maxSessionDuration}
+                step={stepSessionDuration}
+                value={[sessionDuration]}
+                onValueChange={(value) => setSessionDuration(value[0])}
+                disabled={isTraining}
+            />
             <div className="flex items-center">
                 <span className="text-sm text-muted-foreground mr-2">
                     {stepSessionDuration}
                 </span>
-                <Slider
-                    id="session-duration"
-                    min={stepSessionDuration}
-                    max={maxSessionDuration}
-                    step={stepSessionDuration}
-                    value={[sessionDuration]}
-                    onValueChange={(value) => setSessionDuration(value[0])}
-                    disabled={isTraining}
-                />
+                <div className="flex-1"></div>
                 <span className="text-sm text-muted-foreground ml-2">
                     {maxSessionDuration}
                 </span>

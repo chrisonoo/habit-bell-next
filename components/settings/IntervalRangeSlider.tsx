@@ -37,32 +37,27 @@ export function IntervalRangeSlider({
 
     return (
         <div className="space-y-4">
-            <Label
-                htmlFor="interval-range"
-                className="text-base sm:text-lg flex justify-between"
-            >
+            <Label htmlFor="interval-range" className="text-base sm:text-lg">
                 <span>
                     Interval Range: {minInterval}s - {maxInterval}s
                 </span>
-                <span className="text-xs sm:text-sm text-muted-foreground">
-                    [step {stepInterval} s]
-                </span>
             </Label>
+            <DualRangeSlider
+                min={defaultMinInterval}
+                max={defaultMaxInterval}
+                step={stepInterval}
+                defaultValue={[minInterval, maxInterval]}
+                onValueChange={(value) => {
+                    setMinInterval(value[0]);
+                    setMaxInterval(value[1]);
+                }}
+                disabled={isTraining}
+            />
             <div className="flex items-center">
                 <span className="text-sm text-muted-foreground mr-2">
                     {defaultMinInterval}
                 </span>
-                <DualRangeSlider
-                    min={defaultMinInterval}
-                    max={defaultMaxInterval}
-                    step={stepInterval}
-                    defaultValue={[minInterval, maxInterval]}
-                    onValueChange={(value) => {
-                        setMinInterval(value[0]);
-                        setMaxInterval(value[1]);
-                    }}
-                    disabled={isTraining}
-                />
+                <div className="flex-1"></div>
                 <span className="text-sm text-muted-foreground ml-2">
                     {defaultMaxInterval}
                 </span>

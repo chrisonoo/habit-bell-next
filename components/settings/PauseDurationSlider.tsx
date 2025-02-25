@@ -26,7 +26,9 @@ export function PauseDurationSlider({
 }: PauseDurationSliderProps) {
     return (
         <div className="space-y-2">
-            <Label htmlFor={id}>{label} (seconds)</Label>
+            <Label htmlFor={id} className="text-base sm:text-lg">
+                {label}: {value} seconds
+            </Label>
             <Slider
                 id={id}
                 min={min}
@@ -36,7 +38,15 @@ export function PauseDurationSlider({
                 onValueChange={(value) => setValue(value[0])}
                 disabled={isTraining}
             />
-            <div className="text-sm text-muted-foreground">{value} seconds</div>
+            <div className="flex items-center">
+                <span className="text-sm text-muted-foreground mr-2">
+                    {min}
+                </span>
+                <div className="flex-1"></div>
+                <span className="text-sm text-muted-foreground ml-2">
+                    {max}
+                </span>
+            </div>
         </div>
     );
 }
