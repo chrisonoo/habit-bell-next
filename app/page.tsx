@@ -41,6 +41,9 @@ export default function HomePage() {
     } = useActiveConfig();
     const CONFIG = isPomodoroMode ? POMODORO_CONFIG : TRAINING_CONFIG;
 
+    // Get header functions at the top level to avoid conditional hook calls
+    const { toggleHeader } = useHeader();
+
     // State variables for managing the training session
     const [isLoading, setIsLoading] = useState(true); // Whether settings are still loading
     const [isActive, setIsActive] = useState(false); // Whether the session is active
@@ -1016,9 +1019,7 @@ export default function HomePage() {
                         {/* Show clock icon and mode indicator when not in training */}
                         {!isTraining && (
                             <>
-                                <TrainingClockIcon
-                                    onClick={useHeader().toggleHeader}
-                                />
+                                <TrainingClockIcon onClick={toggleHeader} />
                                 <div className="text-sm text-muted-foreground mb-4">
                                     Active Mode:{" "}
                                     {isPomodoroMode ? "Pomodoro" : "Training"}
