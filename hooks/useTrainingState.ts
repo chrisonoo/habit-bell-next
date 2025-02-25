@@ -6,18 +6,12 @@ import { CONFIG as POMODORO_CONFIG } from "@/lib/config-pomodoro";
 import { useActiveConfig } from "@/hooks/useActiveConfig";
 import { useGongSequence } from "@/hooks/useGongSequence";
 import { useTrainingTimer } from "@/hooks/useTrainingTimer";
-
-/**
- * Interface defining the settings structure used for training and pomodoro modes
- */
-interface Settings {
-    sessionDuration: number; // Duration of the session in minutes
-    minInterval: number; // Minimum interval between gongs in seconds
-    maxInterval: number; // Maximum interval between gongs in seconds
-    pause1Duration: number; // Pause duration after first gong in seconds
-    pause2Duration: number; // Pause duration between second gongs in seconds
-    isThirdSoundEnabled: boolean; // Whether to play the third sound in the sequence
-}
+import { Settings, isValidSettings } from "@/lib/types";
+import {
+    formatTime,
+    generateRandomInterval,
+    minutesToSeconds,
+} from "@/lib/utils/timeUtils";
 
 /**
  * Interface for the return value of the useTrainingState hook
@@ -39,9 +33,6 @@ interface UseTrainingStateReturn {
     stopTraining: () => void;
     handleStoodUp: () => void;
     formatTime: (seconds: number) => string;
-
-    // Type guard
-    isValidSettings: (obj: any) => obj is Settings;
 }
 
 /**
@@ -150,6 +141,34 @@ export function useTrainingState(): UseTrainingStateReturn {
     }, [initializeAudio]);
 
     /**
+     * Helper function to get the latest settings from localStorage
+     * @returns The latest settings or null if not available
+     */
+    const getLatestSettings = useCallback((): Settings | null => {
+        const settingsKey = isPomodoroMode
+            ? "pomodoroSettings"
+            : "trainingSettings";
+
+        try {
+            const savedSettings = localStorage.getItem(settingsKey);
+            if (savedSettings) {
+                const parsedSettings = JSON.parse(savedSettings);
+                if (isValidSettings(parsedSettings)) {
+                    console.log(
+                        "Loaded settings from localStorage:",
+                        parsedSettings
+                    );
+                    return parsedSettings;
+                }
+            }
+        } catch (error) {
+            console.error("Error loading settings from localStorage:", error);
+        }
+
+        return currentSettings;
+    }, [isPomodoroMode, currentSettings]);
+
+    /**
      * Starts a new training session
      * 1. Clears all timers and stops audio playback
      * 2. Loads the latest settings from localStorage
@@ -157,34 +176,13 @@ export function useTrainingState(): UseTrainingStateReturn {
      * 4. Sets the first interval
      */
     const startTraining = useCallback(() => {
+        console.log("startTraining called");
+
         // Reset gong state and stop all audio playback
         resetGongState();
 
-        // Always load the latest settings from localStorage directly
-        const settingsKey = isPomodoroMode
-            ? "pomodoroSettings"
-            : "trainingSettings";
-        let settings;
-
-        try {
-            const savedSettings = localStorage.getItem(settingsKey);
-            if (savedSettings) {
-                settings = JSON.parse(savedSettings);
-                console.log(
-                    "Starting training with latest settings from localStorage:",
-                    settings
-                );
-            } else {
-                settings = currentSettings;
-                console.log(
-                    "No settings found in localStorage, using current settings:",
-                    settings
-                );
-            }
-        } catch (error) {
-            console.error("Error loading settings from localStorage:", error);
-            settings = currentSettings;
-        }
+        // Get the latest settings
+        const settings = getLatestSettings();
 
         if (!settings) {
             console.error("No valid settings available");
@@ -210,21 +208,21 @@ export function useTrainingState(): UseTrainingStateReturn {
         setIsTraining(true);
 
         // Generate first interval immediately
-        const firstInterval = Math.floor(
-            Math.random() * (settings.maxInterval - settings.minInterval + 1) +
-                settings.minInterval
+        const firstInterval = generateRandomInterval(
+            settings.minInterval,
+            settings.maxInterval
         );
         console.log("Setting first interval:", firstInterval);
 
         // Start the timer with the session duration and first interval
-        startTimer(settings.sessionDuration * 60, firstInterval);
+        startTimer(minutesToSeconds(settings.sessionDuration), firstInterval);
     }, [
         isPomodoroMode,
-        currentSettings,
         activeConfig,
         loadSettings,
         resetGongState,
         startTimer,
+        getLatestSettings,
     ]);
 
     /**
@@ -269,24 +267,8 @@ export function useTrainingState(): UseTrainingStateReturn {
             return;
         }
 
-        // Always load the latest settings from localStorage directly
-        const settingsKey = isPomodoroMode
-            ? "pomodoroSettings"
-            : "trainingSettings";
-        let settings;
-
-        try {
-            const savedSettings = localStorage.getItem(settingsKey);
-            if (savedSettings) {
-                settings = JSON.parse(savedSettings);
-            } else {
-                // If no settings found in localStorage, use currentSettings as fallback
-                settings = currentSettings;
-            }
-        } catch (error) {
-            console.error("Error loading settings from localStorage:", error);
-            settings = currentSettings; // Fallback to currentSettings
-        }
+        // Get the latest settings
+        const settings = getLatestSettings();
 
         if (!settings) {
             console.error("No valid settings available");
@@ -319,21 +301,20 @@ export function useTrainingState(): UseTrainingStateReturn {
         }
 
         // Generate a random interval between min and max values
-        const newInterval = Math.floor(
-            Math.random() * (settings.maxInterval - settings.minInterval + 1) +
-                settings.minInterval
+        const newInterval = generateRandomInterval(
+            settings.minInterval,
+            settings.maxInterval
         );
         console.log("Generated new interval:", newInterval);
 
         // Update state with the new interval
         setCountdown(newInterval);
     }, [
-        isPomodoroMode,
-        currentSettings,
         isSessionEnded,
         waitingForConfirmation,
         countdown,
         setCountdown,
+        getLatestSettings,
     ]);
 
     /**
@@ -363,12 +344,12 @@ export function useTrainingState(): UseTrainingStateReturn {
                 }, 0);
             } else {
                 stopGong4();
-                // Najpierw ustawiamy nowy interwał
+                // Set new interval first
                 setNewInterval();
-                // Potem resetujemy flagi
+                // Then reset flags
                 setWaitingForConfirmation(false);
                 setIsGongSequencePlaying(false);
-                // Na końcu resetujemy timestamp
+                // Finally reset timestamp
                 setLastTickTimestamp(null);
             }
         }
@@ -385,43 +366,6 @@ export function useTrainingState(): UseTrainingStateReturn {
         setLastTickTimestamp,
         setCountdown,
     ]);
-
-    /**
-     * Formats a time in seconds to a human-readable string
-     * For times less than a minute, shows only seconds
-     * For times of a minute or more, shows minutes:seconds format
-     *
-     * @param seconds - The time in seconds to format
-     * @returns Formatted time string (e.g., "45s" or "2:30")
-     */
-    const formatTime = useCallback((seconds: number) => {
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        if (minutes === 0) {
-            return `${remainingSeconds}s`;
-        }
-        return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-    }, []);
-
-    /**
-     * Type guard to validate if an object conforms to the Settings interface
-     * Checks that all required properties exist and have the correct types
-     *
-     * @param obj - The object to validate
-     * @returns Boolean indicating whether the object is a valid Settings object
-     */
-    function isValidSettings(obj: any): obj is Settings {
-        return (
-            typeof obj === "object" &&
-            obj !== null &&
-            typeof obj.sessionDuration === "number" &&
-            typeof obj.minInterval === "number" &&
-            typeof obj.maxInterval === "number" &&
-            typeof obj.pause1Duration === "number" &&
-            typeof obj.pause2Duration === "number" &&
-            typeof obj.isThirdSoundEnabled === "boolean"
-        );
-    }
 
     return {
         // State
@@ -440,8 +384,5 @@ export function useTrainingState(): UseTrainingStateReturn {
         stopTraining,
         handleStoodUp,
         formatTime,
-
-        // Type guard
-        isValidSettings,
     };
 }

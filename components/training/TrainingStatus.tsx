@@ -28,15 +28,11 @@ export function TrainingStatus({
     // If not in training mode, show the initial ready message
     if (!isTraining) {
         return (
-            <div className="text-xl sm:text-2xl font-bold">
-                Ready to training?
-            </div>
+            <div className="text-xl sm:text-2xl font-bold">Ready to train?</div>
         );
     }
 
-    // CRITICAL FIX: Check isSessionEnded first and with highest priority
-    // This ensures that when a session ends, this message always takes precedence
-    // regardless of other state variables
+    // Check isSessionEnded first with highest priority
     if (isSessionEnded) {
         return (
             <div className="text-xl sm:text-2xl font-bold text-green-500">
@@ -55,9 +51,8 @@ export function TrainingStatus({
         );
     }
 
-    // If countdown is active and session is not ended, show the countdown timer
-    // Double-check isSessionEnded again as an extra safety measure
-    if (countdown > 0 && !isSessionEnded) {
+    // If countdown is active, show the countdown timer
+    if (countdown > 0) {
         return (
             <div className="flex flex-col sm:flex-row items-center justify-center">
                 <div className="text-xl sm:text-2xl font-bold">

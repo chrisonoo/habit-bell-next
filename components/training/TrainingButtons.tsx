@@ -33,23 +33,27 @@ export function TrainingButtons({
 }: TrainingButtonsProps) {
     // If in training mode, show Stop and Let's Go/Finish Training buttons
     if (isTraining) {
+        const isConfirmButtonDisabled =
+            !waitingForConfirmation && !isSessionEnded;
+        const confirmButtonText = isSessionEnded
+            ? "Finish Training"
+            : "Let's Go!";
+
         return (
-            <div className="flex sm:flex-row sm:space-y-0 sm:space-x-2 gap-2">
+            <div className="flex gap-2">
                 <Button
                     onClick={stopTraining}
                     variant="destructive"
-                    className="flex-2"
+                    className="flex-1"
                 >
                     Stop
                 </Button>
                 <Button
                     onClick={handleStoodUp}
                     className="flex-1"
-                    // Button is disabled unless waiting for confirmation or session has ended
-                    disabled={!waitingForConfirmation && !isSessionEnded}
+                    disabled={isConfirmButtonDisabled}
                 >
-                    {/* Button text changes based on whether the session has ended */}
-                    {isSessionEnded ? "Finish Training" : "Let's Go!"}
+                    {confirmButtonText}
                 </Button>
             </div>
         );

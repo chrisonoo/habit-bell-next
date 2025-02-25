@@ -42,8 +42,7 @@ export function useTrainingTimer(
     );
 
     // Timer references
-    const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const animationFrameIdRef = useRef<number | null>(null);
 
     /**
      * Starts the training timers
@@ -52,6 +51,10 @@ export function useTrainingTimer(
      */
     const startTimer = useCallback(
         (sessionDuration: number, initialInterval: number) => {
+            console.log("Starting timer with:", {
+                sessionDuration,
+                initialInterval,
+            });
             setSessionTimeLeft(sessionDuration);
             setCountdown(initialInterval);
             setIsSessionEnded(false);
@@ -64,8 +67,11 @@ export function useTrainingTimer(
      * Stops all timers and resets state
      */
     const stopTimer = useCallback(() => {
-        if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
-        if (countdownTimerRef.current) clearTimeout(countdownTimerRef.current);
+        console.log("Stopping timer");
+        if (animationFrameIdRef.current) {
+            cancelAnimationFrame(animationFrameIdRef.current);
+            animationFrameIdRef.current = null;
+        }
 
         setCountdown(0);
         setSessionTimeLeft(0);
@@ -77,6 +83,7 @@ export function useTrainingTimer(
      * Resets timers without changing the active state
      */
     const resetTimers = useCallback(() => {
+        console.log("Resetting timers");
         setCountdown(0);
         setIsSessionEnded(false);
         setLastTickTimestamp(null);
@@ -84,6 +91,7 @@ export function useTrainingTimer(
 
     // Main timer effect that updates countdown and session time
     useEffect(() => {
+        // Don't run timers if not active, not training, or session has ended
         if (!isActive || !isTraining || isSessionEnded) {
             setLastTickTimestamp(null);
             return;
@@ -96,14 +104,14 @@ export function useTrainingTimer(
         }
 
         console.log("Timer effect started");
-        let animationFrameId: number;
         let lastUpdate = performance.now();
 
         const updateTimers = (timestamp: number) => {
             if (!lastTickTimestamp) {
                 setLastTickTimestamp(timestamp);
                 lastUpdate = timestamp;
-                animationFrameId = requestAnimationFrame(updateTimers);
+                animationFrameIdRef.current =
+                    requestAnimationFrame(updateTimers);
                 return;
             }
 
@@ -137,15 +145,16 @@ export function useTrainingTimer(
                 }
             }
 
-            animationFrameId = requestAnimationFrame(updateTimers);
+            animationFrameIdRef.current = requestAnimationFrame(updateTimers);
         };
 
-        animationFrameId = requestAnimationFrame(updateTimers);
+        animationFrameIdRef.current = requestAnimationFrame(updateTimers);
 
         return () => {
             console.log("Timer effect cleanup");
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
+            if (animationFrameIdRef.current) {
+                cancelAnimationFrame(animationFrameIdRef.current);
+                animationFrameIdRef.current = null;
             }
         };
     }, [

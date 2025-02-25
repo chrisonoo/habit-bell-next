@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { TrainingStatus } from "@/components/training/TrainingStatus";
 import { SessionTimeLeft } from "@/components/training/SessionTimeLeft";
@@ -41,7 +40,11 @@ export default function HomePage() {
 
     // Show loading state while settings are being loaded
     if (isLoading) {
-        return <div>Loading settings...</div>;
+        return (
+            <div className="flex-1 flex items-center justify-center">
+                Loading settings...
+            </div>
+        );
     }
 
     // Main component render
