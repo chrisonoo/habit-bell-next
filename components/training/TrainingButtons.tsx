@@ -5,6 +5,7 @@ interface TrainingButtonsProps {
     waitingForConfirmation: boolean;
     isGongSequencePlaying: boolean;
     isSessionEnded?: boolean;
+    isLastInterval?: boolean;
     startTraining: () => void;
     stopTraining: () => void;
     handleStoodUp: () => void;
@@ -15,6 +16,7 @@ export function TrainingButtons({
     waitingForConfirmation,
     isGongSequencePlaying,
     isSessionEnded = false,
+    isLastInterval = false,
     startTraining,
     stopTraining,
     handleStoodUp,
@@ -34,7 +36,9 @@ export function TrainingButtons({
                     className="flex-1"
                     disabled={!waitingForConfirmation && !isSessionEnded}
                 >
-                    {isSessionEnded ? "Finish Training" : "Let's Go!"}
+                    {isSessionEnded || isLastInterval
+                        ? "Finish Training"
+                        : "Let's Go!"}
                 </Button>
             </div>
         );

@@ -125,6 +125,11 @@ export default function HomePage() {
 
     useEffect(() => {
         // Ten useEffect odpowiada za odliczanie czasu do następnego gongu
+        // Don't do anything if the session has ended or this is the last interval
+        if (isSessionEnded || isLastInterval) {
+            return;
+        }
+
         if (
             isActive &&
             isTraining &&
@@ -134,7 +139,7 @@ export default function HomePage() {
         ) {
             // Jeśli countdown > 0, odliczaj czas
             countdownTimerRef.current = setTimeout(() => {
-                if (isActiveRef.current) {
+                if (isActiveRef.current && !isSessionEnded && !isLastInterval) {
                     setCountdown(countdown - 1);
                 }
             }, 1000);
@@ -180,9 +185,14 @@ export default function HomePage() {
     }, [isActive, isTraining, countdown, isSessionEnded, isLastInterval]);
 
     useEffect(() => {
+        // Don't do anything if the session has already ended
+        if (isSessionEnded) {
+            return;
+        }
+
         if (isActive && isTraining && !isGongSequencePlaying) {
             sessionTimerRef.current = setTimeout(() => {
-                if (isActiveRef.current) {
+                if (isActiveRef.current && !isSessionEnded) {
                     if (sessionTimeLeft > 0) {
                         setSessionTimeLeft(sessionTimeLeft - 1);
                     } else if (!isSessionEnded) {
@@ -225,6 +235,31 @@ export default function HomePage() {
     ]);
 
     const startTraining = useCallback(() => {
+        // First, clear all timers to prevent any further state updates
+        if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
+        if (countdownTimerRef.current) clearTimeout(countdownTimerRef.current);
+        if (gongSequenceTimerRef.current)
+            clearTimeout(gongSequenceTimerRef.current);
+
+        // Immediately stop all audio playback
+        audioRefs.current.forEach((audio) => {
+            audio.pause();
+            audio.currentTime = 0;
+        });
+        if (audio2Ref.current) {
+            audio2Ref.current.pause();
+            audio2Ref.current.currentTime = 0;
+        }
+        if (audio3Ref.current) {
+            audio3Ref.current.pause();
+            audio3Ref.current.currentTime = 0;
+        }
+        if (audio4Ref.current) {
+            audio4Ref.current.loop = false;
+            audio4Ref.current.pause();
+            audio4Ref.current.currentTime = 0;
+        }
+
         // Always load the latest settings from localStorage directly
         const settingsKey = isPomodoroMode
             ? "pomodoroSettings"
@@ -284,6 +319,17 @@ export default function HomePage() {
         setCountdown(0);
         setCurrentInterval(0);
 
+        // Set new interval
+        setNewInterval();
+    }, [isPomodoroMode, currentSettings, activeConfig, loadSettings]);
+
+    const stopTraining = useCallback(() => {
+        // First, clear all timers to prevent any further state updates
+        if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
+        if (countdownTimerRef.current) clearTimeout(countdownTimerRef.current);
+        if (gongSequenceTimerRef.current)
+            clearTimeout(gongSequenceTimerRef.current);
+
         // Immediately stop all audio playback
         audioRefs.current.forEach((audio) => {
             audio.pause();
@@ -303,18 +349,7 @@ export default function HomePage() {
             audio4Ref.current.currentTime = 0;
         }
 
-        // Clear all timers
-        if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
-        if (countdownTimerRef.current) clearTimeout(countdownTimerRef.current);
-        if (gongSequenceTimerRef.current)
-            clearTimeout(gongSequenceTimerRef.current);
-
-        // Set new interval
-        setNewInterval();
-    }, [isPomodoroMode, currentSettings, activeConfig, loadSettings]);
-
-    const stopTraining = useCallback(() => {
-        // Reset all training state
+        // Then reset all training state
         setIsActive(false);
         setIsTraining(false);
         setCountdown(0);
@@ -325,38 +360,24 @@ export default function HomePage() {
         setIsLastInterval(false);
         setIsGongPlaying(false);
         setIsGongSequencePlaying(false);
-
-        // Immediately stop all audio playback
-        audioRefs.current.forEach((audio) => {
-            audio.pause();
-            audio.currentTime = 0;
-        });
-        if (audio2Ref.current) {
-            audio2Ref.current.pause();
-            audio2Ref.current.currentTime = 0;
-        }
-        if (audio3Ref.current) {
-            audio3Ref.current.pause();
-            audio3Ref.current.currentTime = 0;
-        }
-        if (audio4Ref.current) {
-            audio4Ref.current.loop = false;
-            audio4Ref.current.pause();
-            audio4Ref.current.currentTime = 0;
-        }
-
-        // Clear all timers
-        if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
-        if (countdownTimerRef.current) clearTimeout(countdownTimerRef.current);
-        if (gongSequenceTimerRef.current)
-            clearTimeout(gongSequenceTimerRef.current);
     }, []);
 
     const setNewInterval = useCallback(() => {
+        // Log when this function is called to help with debugging
+        console.log("setNewInterval called with state:", {
+            isSessionEnded,
+            isLastInterval,
+            waitingForConfirmation,
+            countdown,
+        });
+
         // Funkcja ustawiająca nowy losowy interwał
         // Jeśli sesja się zakończyła lub jest to ostatni interwał, nie ustawiaj nowego interwału
         // tylko aktywuj przycisk "Finish Training" i uruchom dźwięk gong4 w pętli
         if (isSessionEnded || isLastInterval) {
+            console.log(
+                "Session ended or last interval, not setting new interval"
+            );
             // Aktywuj przycisk "Finish Training"
             setWaitingForConfirmation(true);
             // Uruchamiamy dźwięk gong4 w pętli, aby zasygnalizować koniec treningu
@@ -426,6 +447,7 @@ export default function HomePage() {
         isSessionEnded,
         isLastInterval,
         setWaitingForConfirmation,
+        countdown,
     ]);
 
     const startGong4Loop = useCallback(() => {
@@ -522,6 +544,15 @@ export default function HomePage() {
     }, []);
 
     const handleStoodUp = useCallback(() => {
+        // Log when this function is called to help with debugging
+        console.log("handleStoodUp called with state:", {
+            isTraining,
+            waitingForConfirmation,
+            isSessionEnded,
+            isLastInterval,
+            countdown,
+        });
+
         // This function is called when the user clicks the "Let's go!" or "Finish Training" button
         // The button is only active when waitingForConfirmation or isSessionEnded is true
         if (isTraining && (waitingForConfirmation || isSessionEnded)) {
@@ -533,9 +564,18 @@ export default function HomePage() {
             // This is the key fix: when isSessionEnded or isLastInterval is true,
             // we immediately stop the training without setting a new interval
             if (isSessionEnded || isLastInterval) {
+                console.log(
+                    "Session ended or last interval, stopping training"
+                );
+                // Immediately update UI state to prevent any flicker of interval information
+                setCountdown(0);
+                setCurrentInterval(0);
+                setWaitingForConfirmation(false);
+
                 // End the training - resets all states and stops all sounds
                 stopTraining();
             } else {
+                console.log("Setting new interval");
                 // Otherwise, set a new interval
                 setNewInterval();
             }
@@ -549,6 +589,7 @@ export default function HomePage() {
         setNewInterval,
         stopGong4,
         setIsGongSequencePlaying,
+        countdown,
     ]);
 
     const playGongSequence = useCallback(() => {
@@ -856,6 +897,7 @@ export default function HomePage() {
                         waitingForConfirmation={waitingForConfirmation}
                         isGongSequencePlaying={isGongSequencePlaying}
                         isSessionEnded={isSessionEnded}
+                        isLastInterval={isLastInterval}
                         startTraining={startTraining}
                         stopTraining={stopTraining}
                         handleStoodUp={handleStoodUp}
