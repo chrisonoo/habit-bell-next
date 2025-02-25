@@ -32,13 +32,8 @@ interface Settings {
  */
 export default function HomePage() {
     // Get configuration settings from the active config hook
-    const {
-        activeConfig,
-        isPomodoroMode,
-        isReady,
-        currentSettings,
-        loadSettings,
-    } = useActiveConfig();
+    const { activeConfig, isPomodoroMode, currentSettings, loadSettings } =
+        useActiveConfig();
     const CONFIG = isPomodoroMode ? POMODORO_CONFIG : TRAINING_CONFIG;
 
     // Get header functions at the top level to avoid conditional hook calls
@@ -49,15 +44,11 @@ export default function HomePage() {
     const [isActive, setIsActive] = useState(false); // Whether the session is active
     const [isTraining, setIsTraining] = useState(false); // Whether training is in progress
     const [countdown, setCountdown] = useState(0); // Countdown to next gong in seconds
-    const [currentInterval, setCurrentInterval] = useState(0); // Current interval duration in seconds
     const [isGongPlaying, setIsGongPlaying] = useState(false); // Whether a gong sound is currently playing
     const [sessionTimeLeft, setSessionTimeLeft] = useState(0); // Time left in the session in seconds
     const [isSessionEnded, setIsSessionEnded] = useState(false); // Whether the session has ended
     const [waitingForConfirmation, setWaitingForConfirmation] = useState(false); // Whether waiting for user to confirm standing up
     const [isGongSequencePlaying, setIsGongSequencePlaying] = useState(false); // Whether the gong sequence is playing
-    const [audioFailed, setAudioFailed] = useState(false); // Whether the first gong audio failed to load
-    const [audioFailed2, setAudioFailed2] = useState(false); // Whether the second gong audio failed to load
-    const [audioFailed3, setAudioFailed3] = useState(false); // Whether the third gong audio failed to load
 
     // References to audio elements for playing gong sounds
     const audioRefs = useRef<HTMLAudioElement[]>([]); // Array of first gong sound options
@@ -132,15 +123,8 @@ export default function HomePage() {
                 audio2Ref.current.currentTime = 0;
                 audio3Ref.current.currentTime = 0;
                 audio4Ref.current.currentTime = 0;
-
-                setAudioFailed(false);
-                setAudioFailed2(false);
-                setAudioFailed3(false);
             } catch (error) {
                 console.error("Audio initialization failed:", error);
-                setAudioFailed(true);
-                setAudioFailed2(true);
-                setAudioFailed3(true);
             }
         };
         initAudio();
@@ -354,7 +338,6 @@ export default function HomePage() {
         setIsGongSequencePlaying(false);
         setIsGongPlaying(false);
         setCountdown(0);
-        setCurrentInterval(0);
 
         // Set new interval
         setNewInterval();
@@ -398,7 +381,6 @@ export default function HomePage() {
         // First ensure countdown is 0 and isSessionEnded is false before changing isTraining
         // This prevents any possibility of the "Next gong in:" message appearing
         setCountdown(0);
-        setCurrentInterval(0);
         setIsSessionEnded(false);
         setWaitingForConfirmation(false);
         setIsGongPlaying(false);
@@ -500,7 +482,6 @@ export default function HomePage() {
         console.log("Generated new interval:", newInterval);
 
         // Update state with the new interval
-        setCurrentInterval(newInterval);
         setCountdown(newInterval);
         setWaitingForConfirmation(false);
     }, [
@@ -924,44 +905,6 @@ export default function HomePage() {
         startGong4Loop,
         setWaitingForConfirmation,
     ]);
-
-    /**
-     * Plays a test gong sound for the settings page
-     * @param gongNumber - Which gong sound to play (1, 2, or 3)
-     */
-    const playTestGong = useCallback(
-        (gongNumber: 1 | 2 | 3) => {
-            const audio =
-                gongNumber === 1
-                    ? getRandomGong1()
-                    : gongNumber === 2
-                    ? audio2Ref.current
-                    : audio3Ref.current;
-            if (audio) {
-                setIsGongPlaying(true);
-                audio
-                    .play()
-                    .then(() => {
-                        audio.onended = () => setIsGongPlaying(false);
-                    })
-                    .catch((error) => {
-                        console.error(
-                            `Test gong ${gongNumber} playback failed:`,
-                            error
-                        );
-                        setIsGongPlaying(false);
-                        if (gongNumber === 1) {
-                            setAudioFailed(true);
-                        } else if (gongNumber === 2) {
-                            setAudioFailed2(true);
-                        } else {
-                            setAudioFailed3(true);
-                        }
-                    });
-            }
-        },
-        [getRandomGong1]
-    );
 
     /**
      * Formats a time in seconds to a human-readable string
