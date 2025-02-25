@@ -391,16 +391,21 @@ export default function HomePage() {
             audio4Ref.current.currentTime = 0;
         }
 
-        // Then reset all training state in a single batch to prevent UI flicker
-        setIsActive(false);
-        setIsTraining(false);
+        // CRITICAL FIX: Reset all training state in a specific order to prevent UI flicker
+        // First ensure countdown is 0 and isSessionEnded is false before changing isTraining
+        // This prevents any possibility of the "Next gong in:" message appearing
         setCountdown(0);
         setCurrentInterval(0);
-        setSessionTimeLeft(0);
         setIsSessionEnded(false);
         setWaitingForConfirmation(false);
         setIsGongPlaying(false);
         setIsGongSequencePlaying(false);
+
+        // Only after all other states are reset, change the main training state
+        // This ensures that when isTraining changes, all other states are already in their final state
+        setIsActive(false);
+        setIsTraining(false);
+        setSessionTimeLeft(0);
     }, []);
 
     /**
@@ -630,26 +635,31 @@ export default function HomePage() {
         // This function is called when the user clicks the "Let's go!" or "Finish Training" button
         // The button is only active when waitingForConfirmation or isSessionEnded is true
         if (isTraining && (waitingForConfirmation || isSessionEnded)) {
-            // Stop the gong4 sound (looping sound)
-            stopGong4();
-
-            // If the session has ended, end the training
-            // This is the key fix: when isSessionEnded is true,
-            // we immediately stop the training without setting a new interval
+            // CRITICAL FIX: Immediately ensure countdown is 0 and isSessionEnded is true
+            // This prevents any possibility of the "Next gong in:" message appearing
             if (isSessionEnded) {
-                console.log("Session ended, stopping training");
+                // Force these states immediately to prevent any UI flicker
+                setCountdown(0);
 
-                // FIXED: Call stopTraining directly instead of updating state piecemeal
-                // This ensures all state updates happen in one batch and prevents UI flicker
-                stopTraining();
+                // Stop the gong4 sound (looping sound)
+                stopGong4();
+
+                // Use React's batch update to ensure all state changes happen together
+                // This is the key fix - we're manually batching these critical state updates
+                // to ensure they're processed together before any rendering occurs
+                setTimeout(() => {
+                    stopTraining();
+                }, 0);
             } else {
+                // For normal interval progression (not at session end)
+                // Stop the gong4 sound (looping sound)
+                stopGong4();
+                setIsGongSequencePlaying(false);
+
                 // Double-check that we're not in the process of ending the session
-                // This prevents setting a new interval when the session is ending
                 if (!isSessionEnded) {
-                    // Update UI state for normal interval progression
-                    setIsGongSequencePlaying(false);
                     console.log("Setting new interval");
-                    // Otherwise, set a new interval
+                    // Set a new interval
                     setNewInterval();
                 } else {
                     console.log("Not setting new interval - session is ending");

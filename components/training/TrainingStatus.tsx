@@ -34,7 +34,9 @@ export function TrainingStatus({
         );
     }
 
-    // If the session has ended, show the completion message
+    // CRITICAL FIX: Check isSessionEnded first and with highest priority
+    // This ensures that when a session ends, this message always takes precedence
+    // regardless of other state variables
     if (isSessionEnded) {
         return (
             <div className="text-xl sm:text-2xl font-bold text-green-500">
@@ -54,6 +56,7 @@ export function TrainingStatus({
     }
 
     // If countdown is active and session is not ended, show the countdown timer
+    // Double-check isSessionEnded again as an extra safety measure
     if (countdown > 0 && !isSessionEnded) {
         return (
             <div className="flex flex-col sm:flex-row items-center justify-center">
