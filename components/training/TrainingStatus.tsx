@@ -5,6 +5,7 @@ interface TrainingStatusProps {
     isLastInterval: boolean;
     countdown: number;
     formatTime: (seconds: number) => string;
+    isGongSequencePlaying: boolean;
 }
 
 export function TrainingStatus({
@@ -14,6 +15,7 @@ export function TrainingStatus({
     isLastInterval,
     countdown,
     formatTime,
+    isGongSequencePlaying,
 }: TrainingStatusProps) {
     if (!isTraining) {
         return (
@@ -23,7 +25,7 @@ export function TrainingStatus({
         );
     }
 
-    if (waitingForConfirmation) {
+    if (waitingForConfirmation || countdown === 0 || isGongSequencePlaying) {
         return (
             <div className="text-xl sm:text-2xl font-bold text-red-500">
                 Stand up now!

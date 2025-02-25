@@ -427,13 +427,16 @@ export default function HomePage() {
         if (!isActiveRef.current) return;
         setIsGongSequencePlaying(true);
 
+        // Upewnij się, że countdown jest ustawiony na 0
+        setCountdown(0);
+
         // Clear the session timer when gong sequence starts
         if (sessionTimerRef.current) {
             clearTimeout(sessionTimerRef.current);
         }
 
         playFirstGong();
-    }, []);
+    }, [setCountdown]);
 
     const getRandomGong1 = useCallback(() => {
         const randomIndex = Math.floor(
@@ -704,6 +707,7 @@ export default function HomePage() {
                                 isLastInterval={isLastInterval}
                                 countdown={countdown}
                                 formatTime={formatTime}
+                                isGongSequencePlaying={isGongSequencePlaying}
                             />
                         </div>
                         <div className="flex-1 flex items-center justify-center mt-2">
