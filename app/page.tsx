@@ -130,14 +130,36 @@ export default function HomePage() {
                     setCountdown(countdown - 1);
                 }
             }, 1000);
-        } else if (isActive && isTraining && countdown === 0) {
+        } else if (
+            isActive &&
+            isTraining &&
+            countdown === 0 &&
+            !isSessionEnded
+        ) {
             playGongSequence();
+        } else if (
+            isActive &&
+            isTraining &&
+            countdown === 0 &&
+            isSessionEnded
+        ) {
+            // Jeśli sesja się zakończyła i odliczanie doszło do zera,
+            // ustawiamy waitingForConfirmation na true, aby umożliwić kliknięcie Finish Training
+            setWaitingForConfirmation(true);
+            // Uruchamiamy dźwięk gong4 w pętli, aby zasygnalizować koniec treningu
+            if (audio4Ref.current) {
+                audio4Ref.current.loop = true;
+                audio4Ref.current.currentTime = 0;
+                audio4Ref.current.play().catch((error) => {
+                    console.error("Gong4 playback failed:", error);
+                });
+            }
         }
         return () => {
             if (countdownTimerRef.current)
                 clearTimeout(countdownTimerRef.current);
         };
-    }, [isActive, isTraining, countdown]);
+    }, [isActive, isTraining, countdown, isSessionEnded]);
 
     useEffect(() => {
         if (isActive && isTraining && !isGongSequencePlaying) {
@@ -148,6 +170,22 @@ export default function HomePage() {
                     } else if (!isSessionEnded) {
                         setIsSessionEnded(true);
                         setIsLastInterval(true);
+                        // Jeśli countdown jest już na 0, ustawiamy waitingForConfirmation na true
+                        // i uruchamiamy dźwięk gong4 w pętli
+                        if (countdown === 0) {
+                            setWaitingForConfirmation(true);
+                            // Uruchamiamy dźwięk gong4 w pętli, aby zasygnalizować koniec treningu
+                            if (audio4Ref.current) {
+                                audio4Ref.current.loop = true;
+                                audio4Ref.current.currentTime = 0;
+                                audio4Ref.current.play().catch((error) => {
+                                    console.error(
+                                        "Gong4 playback failed:",
+                                        error
+                                    );
+                                });
+                            }
+                        }
                     }
                 }
             }, 1000);
@@ -161,6 +199,7 @@ export default function HomePage() {
         sessionTimeLeft,
         isSessionEnded,
         isGongSequencePlaying,
+        countdown,
     ]);
 
     const startTraining = useCallback(() => {
@@ -211,15 +250,21 @@ export default function HomePage() {
         // Update currentSettings in the hook to keep it in sync
         loadSettings(activeConfig);
 
+        // Reset all training state
         setIsActive(true);
         setIsTraining(true);
         setSessionTimeLeft(settings.sessionDuration * 60);
         setIsSessionEnded(false);
         setIsLastInterval(false);
+        setWaitingForConfirmation(false);
+        setIsGongSequencePlaying(false);
+
+        // Set new interval
         setNewInterval();
     }, [isPomodoroMode, currentSettings, activeConfig, loadSettings]);
 
     const stopTraining = useCallback(() => {
+        // Reset all training state
         setIsActive(false);
         setIsTraining(false);
         setCountdown(0);
@@ -258,6 +303,21 @@ export default function HomePage() {
     }, []);
 
     const setNewInterval = useCallback(() => {
+        // Jeśli sesja się zakończyła, nie ustawiaj nowego interwału
+        // tylko aktywuj przycisk "Finish Training" i uruchom dźwięk gong4 w pętli
+        if (isSessionEnded) {
+            setWaitingForConfirmation(true);
+            // Uruchamiamy dźwięk gong4 w pętli, aby zasygnalizować koniec treningu
+            if (audio4Ref.current) {
+                audio4Ref.current.loop = true;
+                audio4Ref.current.currentTime = 0;
+                audio4Ref.current.play().catch((error) => {
+                    console.error("Gong4 playback failed:", error);
+                });
+            }
+            return;
+        }
+
         // Always load the latest settings from localStorage directly
         const settingsKey = isPomodoroMode
             ? "pomodoroSettings"
@@ -308,7 +368,12 @@ export default function HomePage() {
         setCurrentInterval(newInterval);
         setCountdown(newInterval);
         setWaitingForConfirmation(false);
-    }, [isPomodoroMode, currentSettings]);
+    }, [
+        isPomodoroMode,
+        currentSettings,
+        isSessionEnded,
+        setWaitingForConfirmation,
+    ]);
 
     const startGong4Loop = useCallback(() => {
         if (!isActiveRef.current || !audio4Ref.current) return;
@@ -404,18 +469,24 @@ export default function HomePage() {
     }, []);
 
     const handleStoodUp = useCallback(() => {
-        if (isTraining && waitingForConfirmation) {
+        // Jeśli trening jest aktywny i przycisk jest aktywny
+        if (isTraining && (waitingForConfirmation || isSessionEnded)) {
+            // Zatrzymaj dźwięk gong4
             stopGong4();
             setIsGongSequencePlaying(false);
-            if (isLastInterval) {
+
+            // Jeśli sesja się zakończyła lub jest to ostatni interwał, zakończ trening
+            if (isSessionEnded || isLastInterval) {
                 stopTraining();
             } else {
+                // W przeciwnym razie ustaw nowy interwał
                 setNewInterval();
             }
         }
     }, [
         isTraining,
         waitingForConfirmation,
+        isSessionEnded,
         isLastInterval,
         stopTraining,
         setNewInterval,
@@ -425,6 +496,21 @@ export default function HomePage() {
 
     const playGongSequence = useCallback(() => {
         if (!isActiveRef.current) return;
+
+        // Sprawdź, czy sesja się zakończyła
+        if (isSessionEnded) {
+            setWaitingForConfirmation(true);
+            // Uruchamiamy dźwięk gong4 w pętli, aby zasygnalizować koniec treningu
+            if (audio4Ref.current) {
+                audio4Ref.current.loop = true;
+                audio4Ref.current.currentTime = 0;
+                audio4Ref.current.play().catch((error) => {
+                    console.error("Gong4 playback failed:", error);
+                });
+            }
+            return;
+        }
+
         setIsGongSequencePlaying(true);
 
         // Upewnij się, że countdown jest ustawiony na 0
@@ -436,7 +522,7 @@ export default function HomePage() {
         }
 
         playFirstGong();
-    }, [setCountdown]);
+    }, [setCountdown, isSessionEnded]);
 
     const getRandomGong1 = useCallback(() => {
         const randomIndex = Math.floor(
@@ -722,6 +808,7 @@ export default function HomePage() {
                         isTraining={isTraining}
                         waitingForConfirmation={waitingForConfirmation}
                         isGongSequencePlaying={isGongSequencePlaying}
+                        isSessionEnded={isSessionEnded}
                         startTraining={startTraining}
                         stopTraining={stopTraining}
                         handleStoodUp={handleStoodUp}
