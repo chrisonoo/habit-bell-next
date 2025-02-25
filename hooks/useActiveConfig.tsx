@@ -22,11 +22,10 @@ interface Settings {
     stepSessionDuration: number;
 
     // Interval settings
+    interval: number;
     minInterval: number;
     maxInterval: number;
     stepInterval: number;
-    defaultMinInterval: number;
-    defaultMaxInterval: number;
 
     // Pause durations
     pause1Duration: number;
@@ -92,11 +91,10 @@ export function ActiveConfigProvider({ children }: { children: ReactNode }) {
             stepSessionDuration: config.STEP_SESSION_DURATION,
 
             // Interval settings
-            minInterval: config.DEFAULT_MIN_INTERVAL,
-            maxInterval: config.DEFAULT_MAX_INTERVAL,
+            interval: config.DEFAULT_INTERVAL,
+            minInterval: config.MIN_INTERVAL,
+            maxInterval: config.MAX_INTERVAL,
             stepInterval: config.STEP_INTERVAL,
-            defaultMinInterval: config.MIN_INTERVAL,
-            defaultMaxInterval: config.MAX_INTERVAL,
 
             // Pause durations
             pause1Duration: config.DEFAULT_PAUSE1_DURATION,
@@ -131,6 +129,30 @@ export function ActiveConfigProvider({ children }: { children: ReactNode }) {
                 const savedSettings = localStorage.getItem(settingsKey);
                 if (savedSettings) {
                     const settings = JSON.parse(savedSettings);
+
+                    // Check if we need to migrate from old format to new format
+                    if (
+                        settings.minInterval === undefined ||
+                        settings.maxInterval === undefined ||
+                        settings.stepInterval === undefined
+                    ) {
+                        // Add missing interval properties
+                        settings.minInterval = CONFIG.MIN_INTERVAL;
+                        settings.maxInterval = CONFIG.MAX_INTERVAL;
+                        settings.stepInterval = CONFIG.STEP_INTERVAL;
+
+                        // If interval is missing, set it to default
+                        if (settings.interval === undefined) {
+                            settings.interval = CONFIG.DEFAULT_INTERVAL;
+                        }
+
+                        // Save migrated settings
+                        localStorage.setItem(
+                            settingsKey,
+                            JSON.stringify(settings)
+                        );
+                    }
+
                     setCurrentSettings(settings);
                     resolve(settings);
                     return;

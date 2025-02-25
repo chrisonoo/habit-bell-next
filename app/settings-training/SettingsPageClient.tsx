@@ -3,7 +3,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SessionDurationSlider } from "@/components/settings/SessionDurationSlider";
-import { IntervalRangeSlider } from "@/components/settings/IntervalRangeSlider";
 import { PauseDurationSlider } from "@/components/settings/PauseDurationSlider";
 import { ThirdSoundToggle } from "@/components/settings/ThirdSoundToggle";
 import { TestGongs } from "@/components/settings/TestGongs";
@@ -17,6 +16,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { IntervalSlider } from "@/components/settings/IntervalSlider";
 
 interface Settings {
     // Session settings
@@ -25,11 +25,10 @@ interface Settings {
     stepSessionDuration: number;
 
     // Interval settings
+    interval: number;
     minInterval: number;
     maxInterval: number;
     stepInterval: number;
-    defaultMinInterval: number;
-    defaultMaxInterval: number;
 
     // Pause durations
     pause1Duration: number;
@@ -58,11 +57,10 @@ export default function SettingsPageClient() {
                     stepSessionDuration: CONFIG.STEP_SESSION_DURATION,
 
                     // Interval settings
-                    minInterval: CONFIG.DEFAULT_MIN_INTERVAL,
-                    maxInterval: CONFIG.DEFAULT_MAX_INTERVAL,
+                    interval: CONFIG.DEFAULT_INTERVAL,
+                    minInterval: CONFIG.MIN_INTERVAL,
+                    maxInterval: CONFIG.MAX_INTERVAL,
                     stepInterval: CONFIG.STEP_INTERVAL,
-                    defaultMinInterval: CONFIG.MIN_INTERVAL,
-                    defaultMaxInterval: CONFIG.MAX_INTERVAL,
 
                     // Pause durations
                     pause1Duration: CONFIG.DEFAULT_PAUSE1_DURATION,
@@ -100,64 +98,71 @@ export default function SettingsPageClient() {
     const audio3Ref = useRef<HTMLAudioElement | null>(null);
     const audio4Ref = useRef<HTMLAudioElement | null>(null);
 
-    // Save settings to localStorage whenever they change
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            localStorage.setItem("trainingSettings", JSON.stringify(settings));
-        }
-    }, [settings]);
-
-    useEffect(() => {
-        const initAudio = async () => {
-            try {
-                audioRefs.current = CONFIG.AUDIO_URLS.GONG1.map(
-                    (url) => new Audio(url)
-                );
-                audio2Ref.current = new Audio(CONFIG.AUDIO_URLS.GONG2);
-                audio3Ref.current = new Audio(CONFIG.AUDIO_URLS.GONG3);
-                audio4Ref.current = new Audio(CONFIG.AUDIO_URLS.GONG4);
-
-                // Initialize all GONG1 sounds
-                for (const audio of audioRefs.current) {
-                    await audio.play();
-                    audio.pause();
-                    audio.currentTime = 0;
-                }
-
-                // Initialize GONG2, GONG3 and GONG4
-                await audio2Ref.current.play();
-                await audio3Ref.current.play();
-                await audio4Ref.current.play();
-                audio2Ref.current.pause();
-                audio3Ref.current.pause();
-                audio4Ref.current.pause();
-                audio2Ref.current.currentTime = 0;
-                audio3Ref.current.currentTime = 0;
-                audio4Ref.current.currentTime = 0;
-
-                setAudioFailed(false);
-                setAudioFailed2(false);
-                setAudioFailed3(false);
-                setAudioFailed4(false);
-            } catch (error) {
-                console.error("Audio initialization failed:", error);
-                setAudioFailed(true);
-                setAudioFailed2(true);
-                setAudioFailed3(true);
-                setAudioFailed4(true);
-            }
-        };
-        initAudio();
+    // Update session duration
+    const setSessionDuration = useCallback((value: number) => {
+        setSettings((prev) => {
+            const newSettings = {
+                ...prev,
+                sessionDuration: value,
+            };
+            localStorage.setItem(
+                "trainingSettings",
+                JSON.stringify(newSettings)
+            );
+            return newSettings;
+        });
     }, []);
 
-    const updateSetting = (
-        key: keyof Settings,
-        value: Settings[keyof Settings]
-    ) => {
-        setSettings((prev: Settings) => ({ ...prev, [key]: value }));
-    };
+    // Update interval
+    const setInterval = useCallback((value: number) => {
+        setSettings((prev) => {
+            const newSettings = { ...prev, interval: value };
+            localStorage.setItem(
+                "trainingSettings",
+                JSON.stringify(newSettings)
+            );
+            return newSettings;
+        });
+    }, []);
 
-    const resetToDefaults = useCallback(() => {
+    // Update pause1 duration
+    const setPause1Duration = useCallback((value: number) => {
+        setSettings((prev) => {
+            const newSettings = { ...prev, pause1Duration: value };
+            localStorage.setItem(
+                "trainingSettings",
+                JSON.stringify(newSettings)
+            );
+            return newSettings;
+        });
+    }, []);
+
+    // Update pause2 duration
+    const setPause2Duration = useCallback((value: number) => {
+        setSettings((prev) => {
+            const newSettings = { ...prev, pause2Duration: value };
+            localStorage.setItem(
+                "trainingSettings",
+                JSON.stringify(newSettings)
+            );
+            return newSettings;
+        });
+    }, []);
+
+    // Toggle third sound
+    const setIsThirdSoundEnabled = useCallback((value: boolean) => {
+        setSettings((prev) => {
+            const newSettings = { ...prev, isThirdSoundEnabled: value };
+            localStorage.setItem(
+                "trainingSettings",
+                JSON.stringify(newSettings)
+            );
+            return newSettings;
+        });
+    }, []);
+
+    // Reset settings to defaults
+    const resetSettings = useCallback(() => {
         const defaultSettings: Settings = {
             // Session settings
             sessionDuration: CONFIG.DEFAULT_SESSION_DURATION,
@@ -165,11 +170,10 @@ export default function SettingsPageClient() {
             stepSessionDuration: CONFIG.STEP_SESSION_DURATION,
 
             // Interval settings
-            minInterval: CONFIG.DEFAULT_MIN_INTERVAL,
-            maxInterval: CONFIG.DEFAULT_MAX_INTERVAL,
+            interval: CONFIG.DEFAULT_INTERVAL,
+            minInterval: CONFIG.MIN_INTERVAL,
+            maxInterval: CONFIG.MAX_INTERVAL,
             stepInterval: CONFIG.STEP_INTERVAL,
-            defaultMinInterval: CONFIG.MIN_INTERVAL,
-            defaultMaxInterval: CONFIG.MAX_INTERVAL,
 
             // Pause durations
             pause1Duration: CONFIG.DEFAULT_PAUSE1_DURATION,
@@ -185,137 +189,225 @@ export default function SettingsPageClient() {
             isThirdSoundEnabled: CONFIG.DEFAULT_THIRD_SOUND_ENABLED,
         };
         setSettings(defaultSettings);
+        localStorage.setItem(
+            "trainingSettings",
+            JSON.stringify(defaultSettings)
+        );
     }, []);
 
-    const playTestGong = useCallback((gongNumber: 1 | 2 | 3 | 4) => {
-        const audio =
-            gongNumber === 1
-                ? audioRefs.current[
-                      Math.floor(Math.random() * audioRefs.current.length)
-                  ]
-                : gongNumber === 2
-                ? audio2Ref.current
-                : gongNumber === 3
-                ? audio3Ref.current
-                : audio4Ref.current;
-        if (audio) {
-            setIsGongPlaying(true);
-            audio
-                .play()
-                .then(() => {
-                    audio.onended = () => setIsGongPlaying(false);
-                })
-                .catch((error) => {
-                    console.error(
-                        `Test gong ${gongNumber} playback failed:`,
-                        error
-                    );
-                    setIsGongPlaying(false);
-                    if (gongNumber === 1) {
-                        setAudioFailed(true);
-                    } else if (gongNumber === 2) {
-                        setAudioFailed2(true);
-                    } else if (gongNumber === 3) {
-                        setAudioFailed3(true);
-                    } else {
-                        setAudioFailed4(true);
-                    }
-                });
+    // Initialize audio elements
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            // Initialize audio elements for gong sounds
+            const gong1Url =
+                CONFIG.AUDIO_URLS.GONG1[
+                    Math.floor(Math.random() * CONFIG.AUDIO_URLS.GONG1.length)
+                ];
+            const gong2Url = CONFIG.AUDIO_URLS.GONG2;
+            const gong3Url = CONFIG.AUDIO_URLS.GONG3;
+            const gong4Url = CONFIG.AUDIO_URLS.GONG4;
+
+            // Create audio elements
+            const audio1 = new Audio(gong1Url);
+            const audio2 = new Audio(gong2Url);
+            const audio3 = new Audio(gong3Url);
+            const audio4 = new Audio(gong4Url);
+
+            // Set up error handlers
+            audio1.onerror = () => setAudioFailed(true);
+            audio2.onerror = () => setAudioFailed2(true);
+            audio3.onerror = () => setAudioFailed3(true);
+            audio4.onerror = () => setAudioFailed4(true);
+
+            // Store references
+            audioRefs.current = [audio1];
+            audio2Ref.current = audio2;
+            audio3Ref.current = audio3;
+            audio4Ref.current = audio4;
+
+            // Preload audio
+            audio1.load();
+            audio2.load();
+            audio3.load();
+            audio4.load();
         }
     }, []);
 
+    // Handle audio playback for testing
+    const playTestGongs = useCallback(
+        (includeThirdSound: boolean) => {
+            if (isGongPlaying) return;
+
+            setIsGongPlaying(true);
+
+            const audio1 = audioRefs.current[0];
+            const audio2 = audio2Ref.current;
+            const audio3 = audio3Ref.current;
+
+            if (!audio1 || !audio2 || !audio3) {
+                setIsGongPlaying(false);
+                return;
+            }
+
+            // Play first gong
+            audio1.currentTime = 0;
+            audio1.play().catch((e) => {
+                console.error("Error playing audio:", e);
+                setAudioFailed(true);
+                setIsGongPlaying(false);
+            });
+
+            // Play second gong after pause1
+            setTimeout(() => {
+                audio2.currentTime = 0;
+                audio2.play().catch((e) => {
+                    console.error("Error playing audio:", e);
+                    setAudioFailed2(true);
+                });
+
+                // Play third gong after pause2 if enabled
+                if (includeThirdSound) {
+                    setTimeout(() => {
+                        audio3.currentTime = 0;
+                        audio3.play().catch((e) => {
+                            console.error("Error playing audio:", e);
+                            setAudioFailed3(true);
+                        });
+
+                        // Reset playing state after all sounds
+                        setTimeout(() => {
+                            setIsGongPlaying(false);
+                        }, 1000);
+                    }, settings.pause2Duration * 1000);
+                } else {
+                    // Reset playing state after second sound
+                    setTimeout(() => {
+                        setIsGongPlaying(false);
+                    }, 1000);
+                }
+            }, settings.pause1Duration * 1000);
+        },
+        [
+            isGongPlaying,
+            settings.pause1Duration,
+            settings.pause2Duration,
+            setIsGongPlaying,
+        ]
+    );
+
     return (
-        <Card className="w-full max-w-[600px] mx-auto">
-            <CardHeader>
-                <CardTitle>Training Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-8">
-                {/* Main settings */}
-                <div className="space-y-6">
-                    <SessionDurationSlider
-                        sessionDuration={settings.sessionDuration}
-                        setSessionDuration={(value) =>
-                            updateSetting("sessionDuration", value)
-                        }
-                        maxSessionDuration={settings.maxSessionDuration}
-                        stepSessionDuration={settings.stepSessionDuration}
-                        isTraining={false}
-                    />
-                    <IntervalRangeSlider
-                        minInterval={settings.minInterval}
-                        maxInterval={settings.maxInterval}
-                        setMinInterval={(value) =>
-                            updateSetting("minInterval", value)
-                        }
-                        setMaxInterval={(value) =>
-                            updateSetting("maxInterval", value)
-                        }
-                        stepInterval={settings.stepInterval}
-                        defaultMinInterval={settings.defaultMinInterval}
-                        defaultMaxInterval={settings.defaultMaxInterval}
-                        isTraining={false}
-                    />
+        <div className="container mx-auto py-6 space-y-6">
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold">Training Settings</h1>
+                <Button asChild>
+                    <Link href="/">Back to Training</Link>
+                </Button>
+            </div>
 
-                    <div className="flex flex-col items-center mt-6">
-                        <Button asChild className="w-full sm:w-auto px-8">
-                            <Link href="/">Save & Return</Link>
-                        </Button>
-                    </div>
-                </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Training Configuration</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <Accordion
+                        type="single"
+                        collapsible
+                        defaultValue="session"
+                        className="w-full"
+                    >
+                        <AccordionItem value="session">
+                            <AccordionTrigger>
+                                Session Settings
+                            </AccordionTrigger>
+                            <AccordionContent className="space-y-6 pt-4">
+                                <SessionDurationSlider
+                                    sessionDuration={settings.sessionDuration}
+                                    setSessionDuration={setSessionDuration}
+                                    maxSessionDuration={
+                                        settings.maxSessionDuration
+                                    }
+                                    stepSessionDuration={
+                                        settings.stepSessionDuration
+                                    }
+                                    isTraining={false}
+                                />
+                                <IntervalSlider
+                                    interval={settings.interval}
+                                    setInterval={setInterval}
+                                    minInterval={settings.minInterval}
+                                    maxInterval={settings.maxInterval}
+                                    stepInterval={settings.stepInterval}
+                                    isTraining={false}
+                                />
+                            </AccordionContent>
+                        </AccordionItem>
 
-                {/* Advanced settings in Accordion */}
-                <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value="advanced-settings">
-                        <AccordionTrigger className="text-lg font-medium">
-                            Advanced
-                        </AccordionTrigger>
-                        <AccordionContent className="space-y-6 pt-4">
-                            <PauseDurationSlider
-                                id="pause1-duration"
-                                label="Pause 1 Duration"
-                                value={settings.pause1Duration}
-                                setValue={(value) =>
-                                    updateSetting("pause1Duration", value)
-                                }
-                                min={settings.minPause1Duration}
-                                max={settings.maxPause1Duration}
-                                step={settings.stepPause1Duration}
-                                isTraining={false}
-                            />
-                            <PauseDurationSlider
-                                id="pause2-duration"
-                                label="Pause 2 Duration"
-                                value={settings.pause2Duration}
-                                setValue={(value) =>
-                                    updateSetting("pause2Duration", value)
-                                }
-                                min={settings.minPause2Duration}
-                                max={settings.maxPause2Duration}
-                                step={settings.stepPause2Duration}
-                                isTraining={false}
-                            />
-                            <ThirdSoundToggle
-                                isThirdSoundEnabled={
-                                    settings.isThirdSoundEnabled
-                                }
-                                setIsThirdSoundEnabled={(value) =>
-                                    updateSetting("isThirdSoundEnabled", value)
-                                }
-                                isTraining={false}
-                            />
-                            <TestGongs
-                                playTestGong={playTestGong}
-                                audioFailed={audioFailed}
-                                audioFailed2={audioFailed2}
-                                audioFailed3={audioFailed3}
-                                audioFailed4={audioFailed4}
-                                isTraining={false}
-                            />
-                            <ResetButton resetToDefaults={resetToDefaults} />
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
-            </CardContent>
-        </Card>
+                        <AccordionItem value="pauses">
+                            <AccordionTrigger>Pause Settings</AccordionTrigger>
+                            <AccordionContent className="space-y-6 pt-4">
+                                <PauseDurationSlider
+                                    label="Pause after first gong"
+                                    pauseDuration={settings.pause1Duration}
+                                    setPauseDuration={setPause1Duration}
+                                    maxPauseDuration={
+                                        settings.maxPause1Duration
+                                    }
+                                    minPauseDuration={
+                                        settings.minPause1Duration
+                                    }
+                                    stepPauseDuration={
+                                        settings.stepPause1Duration
+                                    }
+                                    isTraining={false}
+                                />
+                                <PauseDurationSlider
+                                    label="Pause after second gong"
+                                    pauseDuration={settings.pause2Duration}
+                                    setPauseDuration={setPause2Duration}
+                                    maxPauseDuration={
+                                        settings.maxPause2Duration
+                                    }
+                                    minPauseDuration={
+                                        settings.minPause2Duration
+                                    }
+                                    stepPauseDuration={
+                                        settings.stepPause2Duration
+                                    }
+                                    isTraining={false}
+                                />
+                            </AccordionContent>
+                        </AccordionItem>
+
+                        <AccordionItem value="sounds">
+                            <AccordionTrigger>Sound Settings</AccordionTrigger>
+                            <AccordionContent className="space-y-6 pt-4">
+                                <ThirdSoundToggle
+                                    isThirdSoundEnabled={
+                                        settings.isThirdSoundEnabled
+                                    }
+                                    setIsThirdSoundEnabled={
+                                        setIsThirdSoundEnabled
+                                    }
+                                    isTraining={false}
+                                />
+                                <TestGongs
+                                    playTestGongs={playTestGongs}
+                                    isGongPlaying={isGongPlaying}
+                                    isThirdSoundEnabled={
+                                        settings.isThirdSoundEnabled
+                                    }
+                                    audioFailed={audioFailed}
+                                    audioFailed2={audioFailed2}
+                                    audioFailed3={audioFailed3}
+                                    audioFailed4={audioFailed4}
+                                />
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
+
+                    <ResetButton resetSettings={resetSettings} />
+                </CardContent>
+            </Card>
+        </div>
     );
 }

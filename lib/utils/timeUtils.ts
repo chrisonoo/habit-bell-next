@@ -22,17 +22,6 @@ export function formatTime(seconds: number): string {
 }
 
 /**
- * Generates a random interval between min and max values (inclusive)
- *
- * @param min - Minimum interval in seconds
- * @param max - Maximum interval in seconds
- * @returns Random interval in seconds
- */
-export function generateRandomInterval(min: number, max: number): number {
-    return Math.floor(Math.random() * (max - min + 1) + min);
-}
-
-/**
  * Converts minutes to seconds
  *
  * @param minutes - Time in minutes

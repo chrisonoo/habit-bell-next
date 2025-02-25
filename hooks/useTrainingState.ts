@@ -7,11 +7,7 @@ import { useActiveConfig } from "@/hooks/useActiveConfig";
 import { useGongSequence } from "@/hooks/useGongSequence";
 import { useTrainingTimer } from "@/hooks/useTrainingTimer";
 import { Settings, isValidSettings } from "@/lib/types";
-import {
-    formatTime,
-    generateRandomInterval,
-    minutesToSeconds,
-} from "@/lib/utils/timeUtils";
+import { formatTime, minutesToSeconds } from "@/lib/utils/timeUtils";
 
 /**
  * Interface for the return value of the useTrainingState hook
@@ -173,7 +169,7 @@ export function useTrainingState(): UseTrainingStateReturn {
      * 1. Clears all timers and stops audio playback
      * 2. Loads the latest settings from localStorage
      * 3. Validates settings and initializes the session state
-     * 4. Sets the first interval
+     * 4. Sets the interval based on settings
      */
     const startTraining = useCallback(() => {
         console.log("startTraining called");
@@ -189,11 +185,7 @@ export function useTrainingState(): UseTrainingStateReturn {
             return;
         }
 
-        if (
-            settings.sessionDuration <= 0 ||
-            settings.minInterval <= 0 ||
-            settings.maxInterval <= 0
-        ) {
+        if (settings.sessionDuration <= 0 || settings.interval <= 0) {
             console.error("Invalid training values");
             return;
         }
@@ -207,15 +199,15 @@ export function useTrainingState(): UseTrainingStateReturn {
         setIsActive(true);
         setIsTraining(true);
 
-        // Generate first interval immediately
-        const firstInterval = generateRandomInterval(
-            settings.minInterval,
-            settings.maxInterval
-        );
-        console.log("Setting first interval:", firstInterval);
+        // Use the interval from settings
+        const intervalInSeconds = settings.interval;
+        console.log("Setting interval:", intervalInSeconds);
 
-        // Start the timer with the session duration and first interval
-        startTimer(minutesToSeconds(settings.sessionDuration), firstInterval);
+        // Start the timer with the session duration and interval
+        startTimer(
+            minutesToSeconds(settings.sessionDuration),
+            intervalInSeconds
+        );
     }, [
         isPomodoroMode,
         activeConfig,
@@ -246,11 +238,11 @@ export function useTrainingState(): UseTrainingStateReturn {
     }, [resetGongState, stopTimer]);
 
     /**
-     * Sets a new random interval for the next gong
+     * Sets the interval for the next gong
      * 1. Checks if the session has ended before setting a new interval
      * 2. Loads the latest settings from localStorage
-     * 3. Generates a random interval within the min/max range
-     * 4. Updates the countdown and interval state
+     * 3. Uses the interval from settings
+     * 4. Updates the countdown state
      */
     const setNewInterval = useCallback(() => {
         // Log when this function is called to help with debugging
@@ -276,18 +268,12 @@ export function useTrainingState(): UseTrainingStateReturn {
         }
 
         console.log("Setting new interval with:", {
-            minInterval: settings.minInterval,
-            maxInterval: settings.maxInterval,
+            interval: settings.interval,
         });
 
-        if (
-            settings.minInterval <= 0 ||
-            settings.maxInterval <= 0 ||
-            settings.maxInterval < settings.minInterval
-        ) {
-            console.error("Invalid interval values:", {
-                minInterval: settings.minInterval,
-                maxInterval: settings.maxInterval,
+        if (settings.interval <= 0) {
+            console.error("Invalid interval value:", {
+                interval: settings.interval,
             });
             return;
         }
@@ -300,18 +286,13 @@ export function useTrainingState(): UseTrainingStateReturn {
             return;
         }
 
-        // Generate a random interval between min and max values
-        const newInterval = generateRandomInterval(
-            settings.minInterval,
-            settings.maxInterval
-        );
-        console.log("Generated new interval:", newInterval);
+        // Use the interval from settings
+        const newInterval = settings.interval;
+        console.log("Using interval:", newInterval);
 
         // Final check to ensure session hasn't ended
         if (isSessionEnded) {
-            console.log(
-                "Session has ended during interval generation, aborting"
-            );
+            console.log("Session has ended during interval setup, aborting");
             return;
         }
 

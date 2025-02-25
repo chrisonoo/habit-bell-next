@@ -8,9 +8,8 @@ export const CONFIG = {
     MAX_SESSION_DURATION: 30, // Maximum allowed session duration in minutes
     STEP_SESSION_DURATION: 1, // Step size for session duration adjustment
 
-    // Interval settings
-    DEFAULT_MIN_INTERVAL: 15, // Default minimum interval between gongs in seconds
-    DEFAULT_MAX_INTERVAL: 30, // Default maximum interval between gongs in seconds
+    // Interval settings - now using session duration
+    DEFAULT_INTERVAL: 15, // Default interval between gongs in seconds
     MIN_INTERVAL: 10, // Absolute minimum allowed interval in seconds
     MAX_INTERVAL: 120, // Absolute maximum allowed interval in seconds
     STEP_INTERVAL: 5, // Step size for interval adjustment

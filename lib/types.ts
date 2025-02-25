@@ -7,8 +7,10 @@
  */
 export interface Settings {
     sessionDuration: number; // Duration of the session in minutes
-    minInterval: number; // Minimum interval between gongs in seconds
-    maxInterval: number; // Maximum interval between gongs in seconds
+    interval: number; // Interval between gongs in seconds
+    minInterval: number; // Minimum allowed interval in seconds
+    maxInterval: number; // Maximum allowed interval in seconds
+    stepInterval: number; // Step size for interval adjustment in seconds
     pause1Duration: number; // Pause duration after first gong in seconds
     pause2Duration: number; // Pause duration between second gongs in seconds
     isThirdSoundEnabled: boolean; // Whether to play the third sound in the sequence
@@ -36,8 +38,10 @@ export function isValidSettings(obj: any): obj is Settings {
         typeof obj === "object" &&
         obj !== null &&
         typeof obj.sessionDuration === "number" &&
+        typeof obj.interval === "number" &&
         typeof obj.minInterval === "number" &&
         typeof obj.maxInterval === "number" &&
+        typeof obj.stepInterval === "number" &&
         typeof obj.pause1Duration === "number" &&
         typeof obj.pause2Duration === "number" &&
         typeof obj.isThirdSoundEnabled === "boolean"
