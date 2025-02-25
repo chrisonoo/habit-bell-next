@@ -9,6 +9,12 @@ import { ThirdSoundToggle } from "@/components/settings/ThirdSoundToggle";
 import { TestGongs } from "@/components/settings/TestGongs";
 import { ResetButton } from "@/components/settings/ResetButton";
 import { CONFIG } from "@/lib/config-pomodoro";
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface Settings {
     // Session settings
@@ -222,65 +228,85 @@ export default function SettingsPageClient() {
                 <CardTitle>Settings</CardTitle>
             </CardHeader>
             <CardContent className="space-y-8">
-                <SessionDurationSlider
-                    sessionDuration={settings.sessionDuration}
-                    setSessionDuration={(value) =>
-                        updateSetting("sessionDuration", value)
-                    }
-                    maxSessionDuration={settings.maxSessionDuration}
-                    stepSessionDuration={settings.stepSessionDuration}
-                    isTraining={false}
-                />
-                <IntervalRangeSlider
-                    minInterval={settings.minInterval}
-                    maxInterval={settings.maxInterval}
-                    setMinInterval={(value) =>
-                        updateSetting("minInterval", value)
-                    }
-                    setMaxInterval={(value) =>
-                        updateSetting("maxInterval", value)
-                    }
-                    stepInterval={settings.stepInterval}
-                    defaultMinInterval={settings.defaultMinInterval}
-                    defaultMaxInterval={settings.defaultMaxInterval}
-                    isTraining={false}
-                />
-                <PauseDurationSlider
-                    id="pause1-duration"
-                    label="Pause 1 Duration"
-                    value={settings.pause1Duration}
-                    setValue={(value) => updateSetting("pause1Duration", value)}
-                    min={settings.minPause1Duration}
-                    max={settings.maxPause1Duration}
-                    step={settings.stepPause1Duration}
-                    isTraining={false}
-                />
-                <PauseDurationSlider
-                    id="pause2-duration"
-                    label="Pause 2 Duration"
-                    value={settings.pause2Duration}
-                    setValue={(value) => updateSetting("pause2Duration", value)}
-                    min={settings.minPause2Duration}
-                    max={settings.maxPause2Duration}
-                    step={settings.stepPause2Duration}
-                    isTraining={false}
-                />
-                <ThirdSoundToggle
-                    isThirdSoundEnabled={settings.isThirdSoundEnabled}
-                    setIsThirdSoundEnabled={(value) =>
-                        updateSetting("isThirdSoundEnabled", value)
-                    }
-                    isTraining={false}
-                />
-                <TestGongs
-                    playTestGong={playTestGong}
-                    audioFailed={audioFailed}
-                    audioFailed2={audioFailed2}
-                    audioFailed3={audioFailed3}
-                    audioFailed4={audioFailed4}
-                    isTraining={false}
-                />
-                <ResetButton resetToDefaults={resetToDefaults} />
+                {/* Main settings */}
+                <div className="space-y-6">
+                    <SessionDurationSlider
+                        sessionDuration={settings.sessionDuration}
+                        setSessionDuration={(value) =>
+                            updateSetting("sessionDuration", value)
+                        }
+                        maxSessionDuration={settings.maxSessionDuration}
+                        stepSessionDuration={settings.stepSessionDuration}
+                        isTraining={false}
+                    />
+                    <IntervalRangeSlider
+                        minInterval={settings.minInterval}
+                        maxInterval={settings.maxInterval}
+                        setMinInterval={(value) =>
+                            updateSetting("minInterval", value)
+                        }
+                        setMaxInterval={(value) =>
+                            updateSetting("maxInterval", value)
+                        }
+                        stepInterval={settings.stepInterval}
+                        defaultMinInterval={settings.defaultMinInterval}
+                        defaultMaxInterval={settings.defaultMaxInterval}
+                        isTraining={false}
+                    />
+                </div>
+
+                {/* Advanced settings in Accordion */}
+                <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="advanced-settings">
+                        <AccordionTrigger className="text-lg font-medium">
+                            Advanced
+                        </AccordionTrigger>
+                        <AccordionContent className="space-y-6 pt-4">
+                                                        <PauseDurationSlider
+                                id="pause1-duration"
+                                label="Pause 1 Duration"
+                                value={settings.pause1Duration}
+                                setValue={(value) =>
+                                    updateSetting("pause1Duration", value)
+                                }
+                                min={settings.minPause1Duration}
+                                max={settings.maxPause1Duration}
+                                step={settings.stepPause1Duration}
+                                isTraining={false}
+                            />
+                            <PauseDurationSlider
+                                id="pause2-duration"
+                                label="Pause 2 Duration"
+                                value={settings.pause2Duration}
+                                setValue={(value) =>
+                                    updateSetting("pause2Duration", value)
+                                }
+                                min={settings.minPause2Duration}
+                                max={settings.maxPause2Duration}
+                                step={settings.stepPause2Duration}
+                                isTraining={false}
+                            />
+                            <ThirdSoundToggle
+                                isThirdSoundEnabled={
+                                    settings.isThirdSoundEnabled
+                                }
+                                setIsThirdSoundEnabled={(value) =>
+                                    updateSetting("isThirdSoundEnabled", value)
+                                }
+                                isTraining={false}
+                            />
+                            <TestGongs
+                                playTestGong={playTestGong}
+                                audioFailed={audioFailed}
+                                audioFailed2={audioFailed2}
+                                audioFailed3={audioFailed3}
+                                audioFailed4={audioFailed4}
+                                isTraining={false}
+                            />
+                            <ResetButton resetToDefaults={resetToDefaults} />
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
             </CardContent>
         </Card>
     );
