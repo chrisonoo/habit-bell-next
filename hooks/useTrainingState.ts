@@ -322,16 +322,17 @@ export function useTrainingState(): UseTrainingStateReturn {
             countdown,
         });
 
+        // Stop the gong4 sound first in all cases
+        stopGong4();
+
         // This function is called when the user clicks the "Let's go!" or "Finish Training" button
         // The button is only active when waitingForConfirmation or isSessionEnded is true
         if (isTraining && (waitingForConfirmation || isSessionEnded)) {
             if (isSessionEnded) {
                 setCountdown(0);
-                stopGong4();
                 // Use immediate execution instead of setTimeout to avoid race conditions
                 stopTraining();
             } else {
-                stopGong4();
                 // Set new interval first
                 setNewInterval();
                 // Then reset flags

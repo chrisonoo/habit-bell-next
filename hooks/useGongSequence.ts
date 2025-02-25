@@ -106,9 +106,15 @@ export function useGongSequence(
             return;
         }
 
+        // Don't start gong4 loop if it's already playing
+        const gong4 = audioService.getGong("gong4");
+        if (gong4 && gong4.paused === false) {
+            console.log("Gong4 already playing, not starting again");
+            return;
+        }
+
         console.log("Starting gong4 loop");
 
-        const gong4 = audioService.getGong("gong4");
         if (gong4) {
             audioService.startAudioLoop(gong4);
         } else {
@@ -392,9 +398,18 @@ export function useGongSequence(
             audioInitialized,
         });
 
+        // Don't start a new gong sequence if one is already playing
+        if (isGongSequencePlaying) {
+            console.log(
+                "Gong sequence already playing, not starting a new one"
+            );
+            return;
+        }
+
+        // Don't play if session is inactive or already ended
         if (!isActiveRef.current || isSessionEnded) {
             console.log(
-                "Not playing gong sequence - session is ending or inactive"
+                "Not playing gong sequence - session is inactive or already ended"
             );
             return;
         }
@@ -418,7 +433,13 @@ export function useGongSequence(
             setIsGongSequencePlaying(true);
             playFirstGong();
         }
-    }, [isSessionEnded, playFirstGong, audioInitialized, initializeAudio]);
+    }, [
+        isSessionEnded,
+        isGongSequencePlaying,
+        playFirstGong,
+        audioInitialized,
+        initializeAudio,
+    ]);
 
     // Add an effect to try to initialize audio after user interaction
     useEffect(() => {
