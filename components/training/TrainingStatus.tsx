@@ -2,7 +2,6 @@ interface TrainingStatusProps {
     isTraining: boolean;
     waitingForConfirmation: boolean;
     isSessionEnded: boolean;
-    isLastInterval: boolean;
     countdown: number;
     formatTime: (seconds: number) => string;
     isGongSequencePlaying: boolean;
@@ -12,7 +11,6 @@ export function TrainingStatus({
     isTraining,
     waitingForConfirmation,
     isSessionEnded,
-    isLastInterval,
     countdown,
     formatTime,
     isGongSequencePlaying,
@@ -33,14 +31,6 @@ export function TrainingStatus({
         );
     }
 
-    if (isLastInterval) {
-        return (
-            <div className="text-xl sm:text-2xl font-bold text-yellow-500">
-                Complete your last stand!
-            </div>
-        );
-    }
-
     if (waitingForConfirmation || countdown === 0 || isGongSequencePlaying) {
         return (
             <div className="text-xl sm:text-2xl font-bold text-red-500">
@@ -49,7 +39,7 @@ export function TrainingStatus({
         );
     }
 
-    if (countdown > 0 && !isSessionEnded && !isLastInterval) {
+    if (countdown > 0 && !isSessionEnded) {
         return (
             <div className="flex flex-col sm:flex-row items-center justify-center">
                 <div className="text-xl sm:text-2xl font-bold">
