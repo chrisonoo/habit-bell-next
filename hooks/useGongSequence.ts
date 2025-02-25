@@ -166,44 +166,29 @@ export function useGongSequence(
         // Play the third gong sound
         const gong3 = audioService.getGong("gong3");
         if (gong3) {
-            gongSequenceTimerRef.current = setTimeout(() => {
-                if (
-                    isActiveRef.current &&
-                    settings &&
-                    settings.isThirdSoundEnabled
-                ) {
-                    setIsGongPlaying(true);
+            setIsGongPlaying(true);
 
-                    audioService
-                        .playAudio(gong3)
-                        .then(() => {
-                            gong3.onended = () => {
-                                if (isActiveRef.current) {
-                                    setIsGongPlaying(false);
-                                    setWaitingForConfirmation(true);
-                                    // Only start gong4 loop if we're waiting for confirmation
-                                    startGong4Loop();
-                                }
-                            };
-                        })
-                        .catch((error) => {
-                            console.error("Third gong playback failed:", error);
-                            if (isActiveRef.current) {
-                                setIsGongPlaying(false);
-                                setWaitingForConfirmation(true);
-                                // Only start gong4 loop if we're waiting for confirmation
-                                startGong4Loop();
-                            }
-                        });
-                } else {
-                    console.log("Third gong conditions changed, skipping");
-                    setWaitingForConfirmation(true);
-                    // Only start gong4 loop if we're waiting for confirmation
+            audioService
+                .playAudio(gong3)
+                .then(() => {
+                    gong3.onended = () => {
+                        if (isActiveRef.current) {
+                            setIsGongPlaying(false);
+                            setWaitingForConfirmation(true);
+                            // Only start gong4 loop if we're waiting for confirmation
+                            startGong4Loop();
+                        }
+                    };
+                })
+                .catch((error) => {
+                    console.error("Third gong playback failed:", error);
                     if (isActiveRef.current) {
+                        setIsGongPlaying(false);
+                        setWaitingForConfirmation(true);
+                        // Only start gong4 loop if we're waiting for confirmation
                         startGong4Loop();
                     }
-                }
-            }, (settings.pause1Duration || CONFIG.DEFAULT_PAUSE1_DURATION) * 1000);
+                });
         } else {
             console.warn("Third gong audio not available, continuing sequence");
             setWaitingForConfirmation(true);
@@ -269,16 +254,27 @@ export function useGongSequence(
                                             1000
                                     );
                                 } else {
-                                    // After 5 repetitions, either play third sound or activate confirmation
-                                    if (settings?.isThirdSoundEnabled) {
-                                        playThirdGong();
-                                    } else {
-                                        setWaitingForConfirmation(true);
-                                        // Only start gong4 loop if we're waiting for confirmation
-                                        if (isActiveRef.current) {
-                                            startGong4Loop();
-                                        }
-                                    }
+                                    // After 5 repetitions, add a pause before continuing
+                                    console.log(
+                                        "Fifth gong2 completed, adding pause before continuing"
+                                    );
+                                    gongSequenceTimerRef.current = setTimeout(
+                                        () => {
+                                            // After the pause, either play third sound or activate confirmation
+                                            if (settings?.isThirdSoundEnabled) {
+                                                playThirdGong();
+                                            } else {
+                                                setWaitingForConfirmation(true);
+                                                // Only start gong4 loop if we're waiting for confirmation
+                                                if (isActiveRef.current) {
+                                                    startGong4Loop();
+                                                }
+                                            }
+                                        },
+                                        (settings?.pause1Duration ||
+                                            CONFIG.DEFAULT_PAUSE1_DURATION) *
+                                            1000
+                                    );
                                 }
                             }
                         };
@@ -298,15 +294,26 @@ export function useGongSequence(
                                         CONFIG.DEFAULT_PAUSE2_DURATION) * 1000
                                 );
                             } else {
-                                if (settings?.isThirdSoundEnabled) {
-                                    playThirdGong();
-                                } else {
-                                    setWaitingForConfirmation(true);
-                                    // Only start gong4 loop if we're waiting for confirmation
-                                    if (isActiveRef.current) {
-                                        startGong4Loop();
-                                    }
-                                }
+                                // After 5 repetitions, add a pause before continuing
+                                console.log(
+                                    "Fifth gong2 completed, adding pause before continuing"
+                                );
+                                gongSequenceTimerRef.current = setTimeout(
+                                    () => {
+                                        // After the pause, either play third sound or activate confirmation
+                                        if (settings?.isThirdSoundEnabled) {
+                                            playThirdGong();
+                                        } else {
+                                            setWaitingForConfirmation(true);
+                                            // Only start gong4 loop if we're waiting for confirmation
+                                            if (isActiveRef.current) {
+                                                startGong4Loop();
+                                            }
+                                        }
+                                    },
+                                    (settings?.pause1Duration ||
+                                        CONFIG.DEFAULT_PAUSE1_DURATION) * 1000
+                                );
                             }
                         }
                     });
@@ -324,15 +331,22 @@ export function useGongSequence(
                             CONFIG.DEFAULT_PAUSE2_DURATION) * 1000
                     );
                 } else {
-                    if (settings?.isThirdSoundEnabled) {
-                        playThirdGong();
-                    } else {
-                        setWaitingForConfirmation(true);
-                        // Only start gong4 loop if we're waiting for confirmation
-                        if (isActiveRef.current) {
-                            startGong4Loop();
+                    // After 5 repetitions, add a pause before continuing
+                    console.log(
+                        "Fifth gong2 completed, adding pause before continuing"
+                    );
+                    gongSequenceTimerRef.current = setTimeout(() => {
+                        // After the pause, either play third sound or activate confirmation
+                        if (settings?.isThirdSoundEnabled) {
+                            playThirdGong();
+                        } else {
+                            setWaitingForConfirmation(true);
+                            // Only start gong4 loop if we're waiting for confirmation
+                            if (isActiveRef.current) {
+                                startGong4Loop();
+                            }
                         }
-                    }
+                    }, (settings?.pause1Duration || CONFIG.DEFAULT_PAUSE1_DURATION) * 1000);
                 }
             }
         };
