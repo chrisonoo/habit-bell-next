@@ -6,6 +6,7 @@ import {
     Sheet,
     SheetContent,
     SheetTrigger,
+    SheetHeader,
     SheetTitle,
     SheetDescription,
 } from "@/components/ui/sheet";
@@ -113,6 +114,10 @@ export function Header() {
                 {/* Navigation drawer content */}
                 <SheetContent className="flex flex-col w-[250px] sm:w-[300px] dark:border-gray-800 overflow-y-auto">
                     <div className="flex flex-col flex-1 min-h-min">
+                        <SheetHeader>
+                            <SheetTitle></SheetTitle>
+                            <SheetDescription></SheetDescription>
+                        </SheetHeader>{" "}
                         {/* Navigation links */}
                         <nav className="flex flex-col space-y-2 mt-3">
                             <Link href="/" passHref>

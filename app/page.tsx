@@ -49,6 +49,9 @@ export default function HomePage() {
     const [isSessionEnded, setIsSessionEnded] = useState(false); // Whether the session has ended
     const [waitingForConfirmation, setWaitingForConfirmation] = useState(false); // Whether waiting for user to confirm standing up
     const [isGongSequencePlaying, setIsGongSequencePlaying] = useState(false); // Whether the gong sequence is playing
+    const [lastTickTimestamp, setLastTickTimestamp] = useState<number | null>(
+        null
+    );
 
     // References to audio elements for playing gong sounds
     const audioRefs = useRef<HTMLAudioElement[]>([]); // Array of first gong sound options
@@ -132,121 +135,86 @@ export default function HomePage() {
 
     useEffect(() => {
         /**
-         * This useEffect handles the countdown timer to the next gong
-         * It manages the countdown logic and triggers the gong sequence when countdown reaches zero
-         * Also handles the end-of-session behavior when the session time is up
+         * This useEffect handles both countdown and session timers
+         * Uses requestAnimationFrame for precise timing and synchronization
          */
-
-        // Don't do anything if the session has ended
-        if (isSessionEnded) {
-            // Ensure countdown is reset to 0 when session is ending
-            if (countdown > 0) {
-                setCountdown(0);
-            }
+        if (!isActive || !isTraining || isSessionEnded) {
+            setLastTickTimestamp(null);
             return;
         }
 
-        if (isActive && isTraining && countdown > 0 && !isSessionEnded) {
-            // If countdown > 0, continue counting down
-            countdownTimerRef.current = setTimeout(() => {
-                if (isActiveRef.current && !isSessionEnded) {
-                    setCountdown(countdown - 1);
-                }
-            }, 1000);
-        } else if (
-            isActive &&
-            isTraining &&
-            countdown === 0 &&
-            !isSessionEnded
-        ) {
-            // If countdown = 0 and session has not ended,
-            // play the gong sequence
-            playGongSequence();
-        } else if (
-            isActive &&
-            isTraining &&
-            countdown === 0 &&
-            isSessionEnded
-        ) {
-            // If session has ended and countdown reached zero,
-            // enable the "Finish Training" button and play the end-of-training sound
-            setWaitingForConfirmation(true);
-            // Start playing gong4 in a loop to signal the end of training
-            if (audio4Ref.current) {
-                audio4Ref.current.loop = true;
-                audio4Ref.current.currentTime = 0;
-                audio4Ref.current.play().catch((error) => {
-                    console.error("Gong4 playback failed:", error);
-                });
+        console.log("Timer effect started");
+        let animationFrameId: number;
+        let lastUpdate = performance.now();
+
+        const updateTimers = (timestamp: number) => {
+            if (!lastTickTimestamp) {
+                setLastTickTimestamp(timestamp);
+                animationFrameId = requestAnimationFrame(updateTimers);
+                return;
             }
-        }
 
-        // Cleanup - clear timer when component unmounts or dependencies change
-        return () => {
-            if (countdownTimerRef.current)
-                clearTimeout(countdownTimerRef.current);
-        };
-    }, [isActive, isTraining, countdown, isSessionEnded]);
+            const elapsed = timestamp - lastUpdate;
+            if (elapsed >= 1000) {
+                // Update every second
+                lastUpdate = timestamp;
+                console.log(
+                    "Timer tick - sessionTimeLeft:",
+                    sessionTimeLeft,
+                    "countdown:",
+                    countdown
+                );
 
-    useEffect(() => {
-        /**
-         * This useEffect handles the session timer countdown
-         * It tracks the overall session time and triggers the end-of-session behavior
-         * when the session duration is reached
-         */
-
-        // Don't do anything if the session has already ended
-        if (isSessionEnded) {
-            return;
-        }
-
-        if (isActive && isTraining && !isGongSequencePlaying) {
-            sessionTimerRef.current = setTimeout(() => {
-                if (isActiveRef.current && !isSessionEnded) {
-                    if (sessionTimeLeft > 0) {
-                        // Decrement session time left every second
-                        setSessionTimeLeft(sessionTimeLeft - 1);
-                    } else if (!isSessionEnded) {
-                        // When the session time runs out:
-                        // Batch state updates to prevent UI flicker
-                        // IMPORTANT: Reset countdown to 0 BEFORE setting isSessionEnded to true
-                        // This prevents the "Next gong in:" message from flashing
-                        setCountdown(0);
-
-                        // Now set isSessionEnded to true
-                        setIsSessionEnded(true);
-
-                        // If countdown was already at 0, enable the "Finish Training" button
-                        // and play the end-of-training sound
-                        if (countdown === 0) {
-                            setWaitingForConfirmation(true);
-                            if (audio4Ref.current) {
-                                audio4Ref.current.loop = true;
-                                audio4Ref.current.currentTime = 0;
-                                audio4Ref.current.play().catch((error) => {
-                                    console.error(
-                                        "Gong4 playback failed:",
-                                        error
-                                    );
-                                });
-                            }
+                // Update both timers simultaneously
+                if (sessionTimeLeft > 0) {
+                    setSessionTimeLeft((prev) => Math.max(0, prev - 1));
+                } else if (!isSessionEnded) {
+                    setCountdown(0);
+                    setIsSessionEnded(true);
+                    if (countdown === 0) {
+                        setWaitingForConfirmation(true);
+                        if (audio4Ref.current) {
+                            audio4Ref.current.loop = true;
+                            audio4Ref.current.currentTime = 0;
+                            audio4Ref.current.play().catch((error) => {
+                                console.error("Gong4 playback failed:", error);
+                            });
                         }
                     }
                 }
-            }, 1000);
-        }
 
-        // Cleanup - clear timer when component unmounts or dependencies change
+                if (countdown > 0 && !isSessionEnded) {
+                    setCountdown((prev) => Math.max(0, prev - 1));
+                } else if (
+                    countdown === 0 &&
+                    !isSessionEnded &&
+                    !isGongSequencePlaying
+                ) {
+                    setIsGongSequencePlaying(true);
+                    playGongSequence();
+                }
+            }
+
+            animationFrameId = requestAnimationFrame(updateTimers);
+        };
+
+        animationFrameId = requestAnimationFrame(updateTimers);
+
         return () => {
-            if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
+            console.log("Timer effect cleanup");
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
         };
     }, [
         isActive,
         isTraining,
-        sessionTimeLeft,
         isSessionEnded,
-        isGongSequencePlaying,
         countdown,
+        sessionTimeLeft,
+        lastTickTimestamp,
+        isGongSequencePlaying,
+        audio4Ref,
     ]);
 
     /**
@@ -297,7 +265,6 @@ export default function HomePage() {
                     settings
                 );
             } else {
-                // If no settings found in localStorage, use currentSettings as fallback
                 settings = currentSettings;
                 console.log(
                     "No settings found in localStorage, using current settings:",
@@ -306,7 +273,7 @@ export default function HomePage() {
             }
         } catch (error) {
             console.error("Error loading settings from localStorage:", error);
-            settings = currentSettings; // Fallback to currentSettings
+            settings = currentSettings;
         }
 
         if (!settings) {
@@ -314,7 +281,6 @@ export default function HomePage() {
             return;
         }
 
-        // Validate values before starting
         if (
             settings.sessionDuration <= 0 ||
             settings.minInterval <= 0 ||
@@ -337,10 +303,14 @@ export default function HomePage() {
         setWaitingForConfirmation(false);
         setIsGongSequencePlaying(false);
         setIsGongPlaying(false);
-        setCountdown(0);
 
-        // Set new interval
-        setNewInterval();
+        // Generate first interval immediately
+        const firstInterval = Math.floor(
+            Math.random() * (settings.maxInterval - settings.minInterval + 1) +
+                settings.minInterval
+        );
+        console.log("Setting first interval:", firstInterval);
+        setCountdown(firstInterval);
     }, [isPomodoroMode, currentSettings, activeConfig, loadSettings]);
 
     /**
