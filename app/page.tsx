@@ -97,6 +97,11 @@ export default function HomePage() {
 
     // Initialize audio elements when component mounts
     useEffect(() => {
+        /**
+         * Initializes all audio elements needed for the application
+         * Preloads all gong sounds to ensure they can be played immediately when needed
+         * Sets error states if audio initialization fails
+         */
         const initAudio = async () => {
             try {
                 // Create audio elements for all gong sounds
@@ -139,7 +144,12 @@ export default function HomePage() {
     }, []);
 
     useEffect(() => {
-        // This useEffect handles the countdown timer to the next gong
+        /**
+         * This useEffect handles the countdown timer to the next gong
+         * It manages the countdown logic and triggers the gong sequence when countdown reaches zero
+         * Also handles the end-of-session behavior when the session time is up
+         */
+
         // Don't do anything if the session has ended
         if (isSessionEnded) {
             // Ensure countdown is reset to 0 when session is ending
@@ -192,7 +202,12 @@ export default function HomePage() {
     }, [isActive, isTraining, countdown, isSessionEnded]);
 
     useEffect(() => {
-        // This useEffect handles the session timer countdown
+        /**
+         * This useEffect handles the session timer countdown
+         * It tracks the overall session time and triggers the end-of-session behavior
+         * when the session duration is reached
+         */
+
         // Don't do anything if the session has already ended
         if (isSessionEnded) {
             return;

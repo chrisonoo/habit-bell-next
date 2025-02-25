@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
  * Contains all the state variables and callback functions needed for button interactions
  */
 interface TrainingButtonsProps {
-    isTraining: boolean;
-    waitingForConfirmation: boolean;
-    isGongSequencePlaying: boolean;
-    isSessionEnded?: boolean;
-    startTraining: () => void;
-    stopTraining: () => void;
-    handleStoodUp: () => void;
+    isTraining: boolean; // Whether training is currently active
+    waitingForConfirmation: boolean; // Whether waiting for user to confirm standing up
+    isGongSequencePlaying: boolean; // Whether the gong sequence is currently playing
+    isSessionEnded?: boolean; // Whether the training session has ended (optional)
+    startTraining: () => void; // Function to start a new training session
+    stopTraining: () => void; // Function to stop the current training session
+    handleStoodUp: () => void; // Function to handle when user confirms standing up
 }
 
 /**
@@ -19,6 +19,8 @@ interface TrainingButtonsProps {
  * Shows either:
  * 1. Start Training button when not in training mode
  * 2. Stop and Let's Go/Finish Training buttons when in training mode
+ *
+ * @param props - Component properties including training state and callback functions
  */
 export function TrainingButtons({
     isTraining,

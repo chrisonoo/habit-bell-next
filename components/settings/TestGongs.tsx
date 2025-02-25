@@ -1,12 +1,23 @@
+/**
+ * Interface defining the props for the TestGongs component
+ * Used to test the different gong sounds used in the application
+ */
 interface TestGongsProps {
-    playTestGong: (gongNumber: 1 | 2 | 3 | 4) => void;
-    audioFailed: boolean;
-    audioFailed2: boolean;
-    audioFailed3: boolean;
-    audioFailed4: boolean;
-    isTraining: boolean;
+    playTestGong: (gongNumber: 1 | 2 | 3 | 4) => void; // Function to play a specific gong sound
+    audioFailed: boolean; // Whether the first gong sound failed to load
+    audioFailed2: boolean; // Whether the second gong sound failed to load
+    audioFailed3: boolean; // Whether the third gong sound failed to load
+    audioFailed4: boolean; // Whether the fourth gong sound failed to load
+    isTraining: boolean; // Whether training is in progress (disables buttons)
 }
 
+/**
+ * TestGongs component
+ * Provides buttons to test each of the four gong sounds used in the application
+ * Shows visual feedback if any sound failed to load
+ *
+ * @param props - Component properties including play function and audio status
+ */
 export function TestGongs({
     playTestGong,
     audioFailed,
@@ -19,12 +30,14 @@ export function TestGongs({
         <div className="space-y-4">
             <div className="text-base sm:text-lg">Test Gongs</div>
             <div className="flex items-center space-x-4">
+                {/* Map through gong numbers 1-4 to create test buttons */}
                 {[1, 2, 3, 4].map((gongNumber) => (
                     <button
                         key={gongNumber}
                         onClick={() =>
                             playTestGong(gongNumber as 1 | 2 | 3 | 4)
                         }
+                        // Disable button if training is active or if the corresponding audio failed
                         disabled={
                             isTraining ||
                             (gongNumber === 1
@@ -49,6 +62,7 @@ export function TestGongs({
                         }`}
                     >
                         <div className="flex flex-col items-center">
+                            {/* Speaker icon with color indicating audio status */}
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 width="24"
