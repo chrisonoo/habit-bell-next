@@ -59,7 +59,9 @@ export function useTrainingState(): UseTrainingStateReturn {
     }, []);
 
     const handleSessionEnd = useCallback(() => {
-        startGong4LoopRef.current();
+        // Don't start gong4 loop here - it will be started after the third gong
+        // This prevents the gong4 from playing too early
+        console.log("Session ended, gong4 will start after sequence completes");
     }, []);
 
     // Use the training timer hook to manage countdown and session time
@@ -326,13 +328,13 @@ export function useTrainingState(): UseTrainingStateReturn {
         stopGong4();
 
         // This function is called when the user clicks the "Let's go!" or "Finish Training" button
-        // The button is only active when waitingForConfirmation or isSessionEnded is true
-        if (isTraining && (waitingForConfirmation || isSessionEnded)) {
+        if (isTraining) {
             if (isSessionEnded) {
-                setCountdown(0);
-                // Use immediate execution instead of setTimeout to avoid race conditions
+                console.log("Session has ended, stopping training");
+                // Use immediate execution to avoid race conditions
                 stopTraining();
-            } else {
+            } else if (waitingForConfirmation) {
+                console.log("Setting new interval and resetting state");
                 // Set new interval first
                 setNewInterval();
                 // Then reset flags
@@ -346,14 +348,12 @@ export function useTrainingState(): UseTrainingStateReturn {
         isTraining,
         waitingForConfirmation,
         isSessionEnded,
-        countdown,
         stopTraining,
         setNewInterval,
         stopGong4,
         setWaitingForConfirmation,
         setIsGongSequencePlaying,
         setLastTickTimestamp,
-        setCountdown,
     ]);
 
     return {

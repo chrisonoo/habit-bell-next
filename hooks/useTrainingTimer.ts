@@ -153,12 +153,11 @@ export function useTrainingTimer(
 
                     // If session time just reached zero, end the session
                     if (newSessionTime === 0) {
-                        // Call onSessionEnd before setting isSessionEnded to true
-                        // This ensures the gong sequence starts before the session is marked as ended
-                        onSessionEnd();
-
-                        // Set session ended flag after triggering the end sequence
+                        // Set session ended flag first to prevent further updates
                         setIsSessionEnded(true);
+
+                        // Then call onSessionEnd
+                        onSessionEnd();
 
                         // Cancel the animation frame to stop further updates
                         if (animationFrameIdRef.current) {

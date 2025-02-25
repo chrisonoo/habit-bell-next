@@ -101,26 +101,26 @@ export function useGongSequence(
      * Used to signal the end of a session or when waiting for user confirmation
      */
     const startGong4Loop = useCallback(() => {
-        if (!isActiveRef.current) {
-            console.log("Cannot start gong4 loop - inactive session");
+        const gong4 = audioService.getGong("gong4");
+
+        // Only start gong4 loop if we're waiting for confirmation
+        // This ensures it only plays after the sequence is complete
+        if (!isActiveRef.current || !waitingForConfirmation) {
+            if (gong4) {
+                audioService.startAudioLoop(gong4);
+            }
+            console.log("Start gong4 loop");
             return;
+        } else {
+            console.warn("Cannot start gong4 loop - audio not available");
         }
 
         // Don't start gong4 loop if it's already playing
-        const gong4 = audioService.getGong("gong4");
         if (gong4 && gong4.paused === false) {
             console.log("Gong4 already playing, not starting again");
             return;
         }
-
-        console.log("Starting gong4 loop");
-
-        if (gong4) {
-            audioService.startAudioLoop(gong4);
-        } else {
-            console.warn("Cannot start gong4 loop - audio not available");
-        }
-    }, []);
+    }, [waitingForConfirmation]);
 
     /**
      * Plays the third gong sound in the sequence
@@ -153,7 +153,10 @@ export function useGongSequence(
         if (!isActiveRef.current || !settings.isThirdSoundEnabled) {
             console.log("Skipping third gong (disabled or inactive session)");
             setWaitingForConfirmation(true);
-            startGong4Loop();
+            // Only start gong4 loop if we're waiting for confirmation
+            if (isActiveRef.current) {
+                startGong4Loop();
+            }
             return;
         }
 
@@ -177,6 +180,7 @@ export function useGongSequence(
                                 if (isActiveRef.current) {
                                     setIsGongPlaying(false);
                                     setWaitingForConfirmation(true);
+                                    // Only start gong4 loop if we're waiting for confirmation
                                     startGong4Loop();
                                 }
                             };
@@ -186,19 +190,26 @@ export function useGongSequence(
                             if (isActiveRef.current) {
                                 setIsGongPlaying(false);
                                 setWaitingForConfirmation(true);
+                                // Only start gong4 loop if we're waiting for confirmation
                                 startGong4Loop();
                             }
                         });
                 } else {
                     console.log("Third gong conditions changed, skipping");
                     setWaitingForConfirmation(true);
-                    startGong4Loop();
+                    // Only start gong4 loop if we're waiting for confirmation
+                    if (isActiveRef.current) {
+                        startGong4Loop();
+                    }
                 }
             }, (settings.pause1Duration || CONFIG.DEFAULT_PAUSE1_DURATION) * 1000);
         } else {
             console.warn("Third gong audio not available, continuing sequence");
             setWaitingForConfirmation(true);
-            startGong4Loop();
+            // Only start gong4 loop if we're waiting for confirmation
+            if (isActiveRef.current) {
+                startGong4Loop();
+            }
         }
     }, [isPomodoroMode, startGong4Loop]);
 
@@ -262,7 +273,10 @@ export function useGongSequence(
                                         playThirdGong();
                                     } else {
                                         setWaitingForConfirmation(true);
-                                        startGong4Loop();
+                                        // Only start gong4 loop if we're waiting for confirmation
+                                        if (isActiveRef.current) {
+                                            startGong4Loop();
+                                        }
                                     }
                                 }
                             }
@@ -287,7 +301,10 @@ export function useGongSequence(
                                     playThirdGong();
                                 } else {
                                     setWaitingForConfirmation(true);
-                                    startGong4Loop();
+                                    // Only start gong4 loop if we're waiting for confirmation
+                                    if (isActiveRef.current) {
+                                        startGong4Loop();
+                                    }
                                 }
                             }
                         }
@@ -310,7 +327,10 @@ export function useGongSequence(
                         playThirdGong();
                     } else {
                         setWaitingForConfirmation(true);
-                        startGong4Loop();
+                        // Only start gong4 loop if we're waiting for confirmation
+                        if (isActiveRef.current) {
+                            startGong4Loop();
+                        }
                     }
                 }
             }
@@ -406,11 +426,9 @@ export function useGongSequence(
             return;
         }
 
-        // Don't play if session is inactive or already ended
-        if (!isActiveRef.current || isSessionEnded) {
-            console.log(
-                "Not playing gong sequence - session is inactive or already ended"
-            );
+        // Don't play if session is inactive
+        if (!isActiveRef.current) {
+            console.log("Not playing gong sequence - session is inactive");
             return;
         }
 
@@ -434,7 +452,6 @@ export function useGongSequence(
             playFirstGong();
         }
     }, [
-        isSessionEnded,
         isGongSequencePlaying,
         playFirstGong,
         audioInitialized,
