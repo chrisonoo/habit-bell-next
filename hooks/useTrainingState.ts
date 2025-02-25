@@ -121,7 +121,20 @@ export function useTrainingState(): UseTrainingStateReturn {
     // Set loading state to false once settings are loaded
     useEffect(() => {
         if (currentSettings) {
+            console.log(
+                "Settings loaded, setting isLoading to false:",
+                currentSettings
+            );
             setIsLoading(false);
+        } else {
+            console.log("Waiting for settings to load...");
+            // Add a timeout to prevent infinite loading state
+            const timer = setTimeout(() => {
+                console.log("Timeout reached, forcing isLoading to false");
+                setIsLoading(false);
+            }, 3000); // 3 seconds timeout
+
+            return () => clearTimeout(timer);
         }
     }, [currentSettings]);
 

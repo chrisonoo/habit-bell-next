@@ -41,8 +41,18 @@ export default function HomePage() {
     // Show loading state while settings are being loaded
     if (isLoading) {
         return (
-            <div className="flex-1 flex items-center justify-center">
-                Loading settings...
+            <div className="flex-1 flex flex-col items-center justify-center p-4">
+                <div className="animate-pulse mb-4">
+                    <TrainingClockIcon onClick={() => {}} />
+                </div>
+                <div className="text-center">
+                    <p className="text-lg font-medium mb-2">
+                        Inicjalizacja aplikacji...
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                        Ładowanie ustawień i przygotowywanie modułu treningu
+                    </p>
+                </div>
             </div>
         );
     }

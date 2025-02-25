@@ -185,9 +185,21 @@ export function ActiveConfigProvider({ children }: { children: ReactNode }) {
     // Initialize settings only once when component mounts
     useEffect(() => {
         if (typeof window !== "undefined") {
+            console.log("Initializing settings for mode:", activeConfig);
             setIsReady(false);
-            loadSettings(activeConfig);
-            setIsReady(true);
+
+            // Immediately load settings to prevent delay
+            loadSettings(activeConfig)
+                .then((settings) => {
+                    console.log("Settings loaded successfully:", settings);
+                    setCurrentSettings(settings);
+                    setIsReady(true);
+                })
+                .catch((error) => {
+                    console.error("Error loading settings:", error);
+                    // Even if there's an error, we should set isReady to true to prevent infinite loading
+                    setIsReady(true);
+                });
         }
     }, []); // Empty dependency array means this runs once on mount
 
