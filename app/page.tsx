@@ -12,6 +12,7 @@ import { TrainingClockIcon } from "@/components/training/TrainingClockIcon";
 import { useActiveConfig } from "@/hooks/useActiveConfig";
 import { useHeader } from "@/components/layout/Header";
 import { useGongSequence } from "@/hooks/useGongSequence";
+import { useTrainingTimer } from "@/hooks/useTrainingTimer";
 
 /**
  * Interface defining the settings structure used for training and pomodoro modes
@@ -44,11 +45,43 @@ export default function HomePage() {
     const [isLoading, setIsLoading] = useState(true); // Whether settings are still loading
     const [isActive, setIsActive] = useState(false); // Whether the session is active
     const [isTraining, setIsTraining] = useState(false); // Whether training is in progress
-    const [countdown, setCountdown] = useState(0); // Countdown to next gong in seconds
-    const [sessionTimeLeft, setSessionTimeLeft] = useState(0); // Time left in the session in seconds
-    const [isSessionEnded, setIsSessionEnded] = useState(false); // Whether the session has ended
-    const [lastTickTimestamp, setLastTickTimestamp] = useState<number | null>(
-        null
+
+    // Create refs for functions that will be defined later
+    const playGongSequenceRef = useRef<() => void>(() => {});
+    const startGong4LoopRef = useRef<() => void>(() => {});
+
+    // Create a state for isGongSequencePlaying to avoid circular dependencies
+    const [isGongSequencePlayingState, setIsGongSequencePlayingState] =
+        useState(false);
+
+    // Callbacks for timer events that use the refs
+    const handleCountdownZero = useCallback(() => {
+        playGongSequenceRef.current();
+    }, []);
+
+    const handleSessionEnd = useCallback(() => {
+        startGong4LoopRef.current();
+    }, []);
+
+    // Use the training timer hook to manage countdown and session time
+    const {
+        countdown,
+        sessionTimeLeft,
+        isSessionEnded,
+        lastTickTimestamp,
+        setCountdown,
+        setSessionTimeLeft,
+        setIsSessionEnded,
+        setLastTickTimestamp,
+        startTimer,
+        stopTimer,
+        resetTimers,
+    } = useTrainingTimer(
+        isActive,
+        isTraining,
+        isGongSequencePlayingState,
+        handleCountdownZero,
+        handleSessionEnd
     );
 
     // Use the gong sequence hook to manage audio playback
@@ -69,8 +102,16 @@ export default function HomePage() {
         resetGongState,
     } = useGongSequence(isPomodoroMode, isActive, isSessionEnded);
 
-    const sessionTimerRef = useRef<NodeJS.Timeout | null>(null); // Timer for tracking session time
-    const countdownTimerRef = useRef<NodeJS.Timeout | null>(null); // Timer for countdown to next gong
+    // Update the refs with the actual functions
+    useEffect(() => {
+        playGongSequenceRef.current = playGongSequence;
+        startGong4LoopRef.current = startGong4Loop;
+    }, [playGongSequence, startGong4Loop]);
+
+    // Update the isGongSequencePlayingState whenever isGongSequencePlaying changes
+    useEffect(() => {
+        setIsGongSequencePlayingState(isGongSequencePlaying);
+    }, [isGongSequencePlaying]);
 
     const isActiveRef = useRef(isActive); // Ref to track active state for use in callbacks
 
@@ -107,90 +148,6 @@ export default function HomePage() {
         initializeAudio();
     }, [initializeAudio]);
 
-    useEffect(() => {
-        if (!isActive || !isTraining || isSessionEnded) {
-            setLastTickTimestamp(null);
-            return;
-        }
-
-        // Don't run timers when gong sequence is playing
-        if (isGongSequencePlaying) {
-            setLastTickTimestamp(null);
-            return;
-        }
-
-        console.log("Timer effect started");
-        let animationFrameId: number;
-        let lastUpdate = performance.now();
-
-        const updateTimers = (timestamp: number) => {
-            if (!lastTickTimestamp) {
-                setLastTickTimestamp(timestamp);
-                lastUpdate = timestamp;
-                animationFrameId = requestAnimationFrame(updateTimers);
-                return;
-            }
-
-            const elapsed = timestamp - lastUpdate;
-            if (elapsed >= 1000) {
-                lastUpdate = timestamp;
-                console.log(
-                    "Timer tick - sessionTimeLeft:",
-                    sessionTimeLeft,
-                    "countdown:",
-                    countdown
-                );
-
-                // Update both timers simultaneously
-                if (sessionTimeLeft > 0) {
-                    setSessionTimeLeft((prev) => Math.max(0, prev - 1));
-                } else if (!isSessionEnded) {
-                    setCountdown(0);
-                    setIsSessionEnded(true);
-                    if (countdown === 0) {
-                        startGong4Loop();
-                    }
-                }
-
-                if (countdown > 0 && !isSessionEnded) {
-                    setCountdown((prev) => Math.max(0, prev - 1));
-                } else if (
-                    countdown === 0 &&
-                    !isSessionEnded &&
-                    !isGongSequencePlaying
-                ) {
-                    playGongSequence();
-                }
-            }
-
-            animationFrameId = requestAnimationFrame(updateTimers);
-        };
-
-        animationFrameId = requestAnimationFrame(updateTimers);
-
-        return () => {
-            console.log("Timer effect cleanup");
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-            }
-        };
-    }, [
-        isActive,
-        isTraining,
-        isSessionEnded,
-        countdown,
-        sessionTimeLeft,
-        lastTickTimestamp,
-        isGongSequencePlaying,
-        playGongSequence,
-        startGong4Loop,
-    ]);
-
-    // Dodajmy useEffect do synchronizacji wyświetlania
-    useEffect(() => {
-        console.log("Current session time:", sessionTimeLeft);
-    }, [sessionTimeLeft]);
-
     /**
      * Starts a new training session
      * 1. Clears all timers and stops audio playback
@@ -199,10 +156,6 @@ export default function HomePage() {
      * 4. Sets the first interval
      */
     const startTraining = useCallback(() => {
-        // First, clear all timers to prevent any further state updates
-        if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
-        if (countdownTimerRef.current) clearTimeout(countdownTimerRef.current);
-
         // Reset gong state and stop all audio playback
         resetGongState();
 
@@ -254,8 +207,6 @@ export default function HomePage() {
         // Reset all training state
         setIsActive(true);
         setIsTraining(true);
-        setSessionTimeLeft(settings.sessionDuration * 60);
-        setIsSessionEnded(false);
 
         // Generate first interval immediately
         const firstInterval = Math.floor(
@@ -263,13 +214,16 @@ export default function HomePage() {
                 settings.minInterval
         );
         console.log("Setting first interval:", firstInterval);
-        setCountdown(firstInterval);
+
+        // Start the timer with the session duration and first interval
+        startTimer(settings.sessionDuration * 60, firstInterval);
     }, [
         isPomodoroMode,
         currentSettings,
         activeConfig,
         loadSettings,
         resetGongState,
+        startTimer,
     ]);
 
     /**
@@ -281,25 +235,16 @@ export default function HomePage() {
     const stopTraining = useCallback(() => {
         console.log("stopTraining called");
 
-        // First, clear all timers to prevent any further state updates
-        if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
-        if (countdownTimerRef.current) clearTimeout(countdownTimerRef.current);
-
         // Reset gong state and stop all audio playback
         resetGongState();
 
-        // CRITICAL FIX: Reset all training state in a specific order to prevent UI flicker
-        // First ensure countdown is 0 and isSessionEnded is false before changing isTraining
-        // This prevents any possibility of the "Next gong in:" message appearing
-        setCountdown(0);
-        setIsSessionEnded(false);
+        // Stop the timer
+        stopTimer();
 
-        // Only after all other states are reset, change the main training state
-        // This ensures that when isTraining changes, all other states are already in their final state
+        // Reset training state
         setIsActive(false);
         setIsTraining(false);
-        setSessionTimeLeft(0);
-    }, [resetGongState]);
+    }, [resetGongState, stopTimer]);
 
     /**
      * Sets a new random interval for the next gong
@@ -387,6 +332,7 @@ export default function HomePage() {
         isSessionEnded,
         waitingForConfirmation,
         countdown,
+        setCountdown,
     ]);
 
     /**
@@ -429,11 +375,14 @@ export default function HomePage() {
         isTraining,
         waitingForConfirmation,
         isSessionEnded,
+        countdown,
         stopTraining,
         setNewInterval,
         stopGong4,
         setWaitingForConfirmation,
         setIsGongSequencePlaying,
+        setLastTickTimestamp,
+        setCountdown,
     ]);
 
     /**

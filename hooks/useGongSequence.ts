@@ -51,6 +51,7 @@ export function useGongSequence(
     const [isGongPlaying, setIsGongPlaying] = useState(false);
     const [isGongSequencePlaying, setIsGongSequencePlaying] = useState(false);
     const [waitingForConfirmation, setWaitingForConfirmation] = useState(false);
+    const [audioInitialized, setAudioInitialized] = useState(false);
 
     // References to audio elements for playing gong sounds
     const audioRefs = useRef<HTMLAudioElement[]>([]);
@@ -69,35 +70,40 @@ export function useGongSequence(
 
     /**
      * Initializes all audio elements needed for the application
-     * Preloads all gong sounds to ensure they can be played immediately when needed
+     * Creates audio elements and sets up event handlers without trying to play them
      */
     const initializeAudio = useCallback(async () => {
         try {
-            // Create audio elements for all gong sounds
-            audioRefs.current = TRAINING_CONFIG.AUDIO_URLS.GONG1.map(
-                (url) => new Audio(url)
-            );
-            audio2Ref.current = new Audio(TRAINING_CONFIG.AUDIO_URLS.GONG2);
-            audio3Ref.current = new Audio(TRAINING_CONFIG.AUDIO_URLS.GONG3);
-            audio4Ref.current = new Audio(TRAINING_CONFIG.AUDIO_URLS.GONG4);
+            console.log("Initializing audio elements...");
 
-            // Initialize all GONG1 sounds
-            for (const audio of audioRefs.current) {
-                await audio.play();
-                audio.pause();
-                audio.currentTime = 0;
+            // Create audio elements for all gong sounds if they don't exist yet
+            if (audioRefs.current.length === 0) {
+                audioRefs.current = TRAINING_CONFIG.AUDIO_URLS.GONG1.map(
+                    (url) => {
+                        const audio = new Audio(url);
+                        audio.preload = "auto";
+                        return audio;
+                    }
+                );
             }
 
-            // Initialize GONG2, GONG3 and GONG4
-            await audio2Ref.current.play();
-            await audio3Ref.current.play();
-            await audio4Ref.current.play();
-            audio2Ref.current.pause();
-            audio3Ref.current.pause();
-            audio4Ref.current.pause();
-            audio2Ref.current.currentTime = 0;
-            audio3Ref.current.currentTime = 0;
-            audio4Ref.current.currentTime = 0;
+            if (!audio2Ref.current) {
+                audio2Ref.current = new Audio(TRAINING_CONFIG.AUDIO_URLS.GONG2);
+                audio2Ref.current.preload = "auto";
+            }
+
+            if (!audio3Ref.current) {
+                audio3Ref.current = new Audio(TRAINING_CONFIG.AUDIO_URLS.GONG3);
+                audio3Ref.current.preload = "auto";
+            }
+
+            if (!audio4Ref.current) {
+                audio4Ref.current = new Audio(TRAINING_CONFIG.AUDIO_URLS.GONG4);
+                audio4Ref.current.preload = "auto";
+            }
+
+            setAudioInitialized(true);
+            console.log("Audio elements initialized successfully");
         } catch (error) {
             console.error("Audio initialization failed:", error);
         }
@@ -117,10 +123,18 @@ export function useGongSequence(
      * Stops the fourth gong sound (end of session sound)
      */
     const stopGong4 = useCallback(() => {
+        console.log("Stopping gong4 sound");
+
         if (audio4Ref.current) {
-            audio4Ref.current.loop = false;
-            audio4Ref.current.pause();
-            audio4Ref.current.currentTime = 0;
+            try {
+                audio4Ref.current.loop = false;
+                audio4Ref.current.pause();
+                audio4Ref.current.currentTime = 0;
+            } catch (error) {
+                console.error("Error stopping gong4:", error);
+            }
+        } else {
+            console.warn("Cannot stop gong4 - audio not available");
         }
     }, []);
 
@@ -129,13 +143,31 @@ export function useGongSequence(
      * Used to signal the end of a session or when waiting for user confirmation
      */
     const startGong4Loop = useCallback(() => {
-        if (!isActiveRef.current || !audio4Ref.current) return;
+        if (!isActiveRef.current || !audio4Ref.current) {
+            console.log(
+                "Cannot start gong4 loop - inactive session or audio not available"
+            );
+            return;
+        }
+
+        console.log("Starting gong4 loop");
 
         const playGong4 = () => {
             if (!isActiveRef.current || !audio4Ref.current) return;
+
+            // Reset the audio to ensure it plays from the beginning
             audio4Ref.current.currentTime = 0;
+
             audio4Ref.current.play().catch((error) => {
                 console.error("Gong4 playback failed:", error);
+                // Try again after a short delay if playback fails
+                setTimeout(() => {
+                    if (isActiveRef.current && audio4Ref.current) {
+                        audio4Ref.current.play().catch((e) => {
+                            console.error("Retry gong4 playback failed:", e);
+                        });
+                    }
+                }, 1000);
             });
         };
 
@@ -172,10 +204,13 @@ export function useGongSequence(
 
         // Skip third sound if disabled or session is inactive
         if (!isActiveRef.current || !settings.isThirdSoundEnabled) {
+            console.log("Skipping third gong (disabled or inactive session)");
             setWaitingForConfirmation(true);
             startGong4Loop();
             return;
         }
+
+        console.log("Playing third gong sound");
 
         // Play the third gong sound
         if (audio3Ref.current) {
@@ -186,6 +221,10 @@ export function useGongSequence(
                     settings.isThirdSoundEnabled
                 ) {
                     setIsGongPlaying(true);
+
+                    // Reset the audio to ensure it plays from the beginning
+                    audio3Ref.current!.currentTime = 0;
+
                     audio3Ref
                         .current!.play()
                         .then(() => {
@@ -206,11 +245,13 @@ export function useGongSequence(
                             }
                         });
                 } else {
+                    console.log("Third gong conditions changed, skipping");
                     setWaitingForConfirmation(true);
                     startGong4Loop();
                 }
             }, (settings.pause1Duration || CONFIG.DEFAULT_PAUSE1_DURATION) * 1000);
         } else {
+            console.warn("Third gong audio not available, continuing sequence");
             setWaitingForConfirmation(true);
             startGong4Loop();
         }
@@ -248,8 +289,15 @@ export function useGongSequence(
         let count = 0;
         const playNextGong = () => {
             if (!isActiveRef.current) return;
+
+            console.log(`Playing second gong sound (${count + 1}/5)`);
+
             if (audio2Ref.current) {
                 setIsGongPlaying(true);
+
+                // Reset the audio to ensure it plays from the beginning
+                audio2Ref.current.currentTime = 0;
+
                 audio2Ref.current
                     .play()
                     .then(() => {
@@ -278,7 +326,10 @@ export function useGongSequence(
                         };
                     })
                     .catch((error) => {
-                        console.error("Second gong playback failed:", error);
+                        console.error(
+                            `Second gong playback failed (${count + 1}/5):`,
+                            error
+                        );
                         if (isActiveRef.current) {
                             setIsGongPlaying(false);
                             count++;
@@ -299,6 +350,11 @@ export function useGongSequence(
                         }
                     });
             } else {
+                console.warn(
+                    `Second gong audio not available (${
+                        count + 1
+                    }/5), continuing sequence`
+                );
                 count++;
                 if (count < 5) {
                     gongSequenceTimerRef.current = setTimeout(
@@ -351,6 +407,11 @@ export function useGongSequence(
         const randomGong = getRandomGong1();
         if (randomGong) {
             setIsGongPlaying(true);
+            console.log("Playing first gong sound");
+
+            // Reset the audio to ensure it plays from the beginning
+            randomGong.currentTime = 0;
+
             randomGong
                 .play()
                 .then(() => {
@@ -369,6 +430,7 @@ export function useGongSequence(
                     console.error("First gong playback failed:", error);
                     if (isActiveRef.current) {
                         setIsGongPlaying(false);
+                        // Even if playback fails, continue with the sequence
                         gongSequenceTimerRef.current = setTimeout(
                             playSecondGongSequence,
                             (settings?.pause1Duration ||
@@ -377,6 +439,7 @@ export function useGongSequence(
                     }
                 });
         } else {
+            console.warn("No gong sound available, continuing with sequence");
             gongSequenceTimerRef.current = setTimeout(
                 playSecondGongSequence,
                 (settings?.pause1Duration || CONFIG.DEFAULT_PAUSE1_DURATION) *
@@ -392,6 +455,7 @@ export function useGongSequence(
         console.log("playGongSequence called with state:", {
             isSessionEnded,
             isGongSequencePlaying,
+            audioInitialized,
         });
 
         if (!isActiveRef.current || isSessionEnded) {
@@ -401,10 +465,48 @@ export function useGongSequence(
             return;
         }
 
-        setIsGongSequencePlaying(true);
-        // Start playing the sound sequence
-        playFirstGong();
-    }, [isSessionEnded, playFirstGong]);
+        // Make sure audio is initialized before playing
+        if (!audioInitialized) {
+            console.log("Audio not initialized, initializing now");
+            initializeAudio()
+                .then(() => {
+                    console.log("Audio initialized, starting gong sequence");
+                    setIsGongSequencePlaying(true);
+                    playFirstGong();
+                })
+                .catch((error) => {
+                    console.error("Failed to initialize audio:", error);
+                    // Continue with sequence even if initialization fails
+                    setIsGongSequencePlaying(true);
+                    playFirstGong();
+                });
+        } else {
+            setIsGongSequencePlaying(true);
+            playFirstGong();
+        }
+    }, [isSessionEnded, playFirstGong, audioInitialized, initializeAudio]);
+
+    // Add an effect to try to initialize audio after user interaction
+    useEffect(() => {
+        const handleUserInteraction = () => {
+            if (!audioInitialized) {
+                console.log("User interaction detected, initializing audio");
+                initializeAudio();
+            }
+        };
+
+        // Add event listeners for common user interactions
+        window.addEventListener("click", handleUserInteraction);
+        window.addEventListener("touchstart", handleUserInteraction);
+        window.addEventListener("keydown", handleUserInteraction);
+
+        return () => {
+            // Clean up event listeners
+            window.removeEventListener("click", handleUserInteraction);
+            window.removeEventListener("touchstart", handleUserInteraction);
+            window.removeEventListener("keydown", handleUserInteraction);
+        };
+    }, [audioInitialized, initializeAudio]);
 
     /**
      * Resets all gong-related state
