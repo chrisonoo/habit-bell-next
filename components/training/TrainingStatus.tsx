@@ -49,12 +49,22 @@ export function TrainingStatus({
         );
     }
 
-    return (
-        <div className="flex flex-col sm:flex-row items-center justify-center">
-            <div className="text-xl sm:text-2xl font-bold">Next gong in:</div>
-            <div className="text-3xl sm:text-4xl font-bold sm:ml-2">
-                {formatTime(countdown)}
+    if (countdown > 0 && !isSessionEnded && !isLastInterval) {
+        return (
+            <div className="flex flex-col sm:flex-row items-center justify-center">
+                <div className="text-xl sm:text-2xl font-bold">
+                    Next gong in:
+                </div>
+                <div className="text-3xl sm:text-4xl font-bold sm:ml-2">
+                    {formatTime(countdown)}
+                </div>
             </div>
+        );
+    }
+
+    return (
+        <div className="text-xl sm:text-2xl font-bold">
+            Training in progress...
         </div>
     );
 }

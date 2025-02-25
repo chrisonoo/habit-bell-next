@@ -127,6 +127,10 @@ export default function HomePage() {
         // Ten useEffect odpowiada za odliczanie czasu do następnego gongu
         // Don't do anything if the session has ended or this is the last interval
         if (isSessionEnded || isLastInterval) {
+            // Ensure countdown is reset to 0 when session is ending
+            if (countdown > 0) {
+                setCountdown(0);
+            }
             return;
         }
 
@@ -324,6 +328,8 @@ export default function HomePage() {
     }, [isPomodoroMode, currentSettings, activeConfig, loadSettings]);
 
     const stopTraining = useCallback(() => {
+        console.log("stopTraining called");
+
         // First, clear all timers to prevent any further state updates
         if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
         if (countdownTimerRef.current) clearTimeout(countdownTimerRef.current);
@@ -349,7 +355,8 @@ export default function HomePage() {
             audio4Ref.current.currentTime = 0;
         }
 
-        // Then reset all training state
+        // Then reset all training state in a single batch to prevent UI flicker
+        // We use a function to ensure we get the latest state
         setIsActive(false);
         setIsTraining(false);
         setCountdown(0);
@@ -371,9 +378,8 @@ export default function HomePage() {
             countdown,
         });
 
-        // Funkcja ustawiająca nowy losowy interwał
-        // Jeśli sesja się zakończyła lub jest to ostatni interwał, nie ustawiaj nowego interwału
-        // tylko aktywuj przycisk "Finish Training" i uruchom dźwięk gong4 w pętli
+        // Early return if the session is ending or has ended
+        // This is a critical check to prevent setting a new interval when the session is ending
         if (isSessionEnded || isLastInterval) {
             console.log(
                 "Session ended or last interval, not setting new interval"
@@ -429,6 +435,14 @@ export default function HomePage() {
                 minInterval: settings.minInterval,
                 maxInterval: settings.maxInterval,
             });
+            return;
+        }
+
+        // Final check before setting a new interval
+        // This ensures we don't set a new interval if the session state changed
+        // between the function call and this point
+        if (isSessionEnded || isLastInterval) {
+            console.log("Session state changed, not setting new interval");
             return;
         }
 
@@ -567,17 +581,35 @@ export default function HomePage() {
                 console.log(
                     "Session ended or last interval, stopping training"
                 );
-                // Immediately update UI state to prevent any flicker of interval information
+
+                // Immediately update ALL UI state variables to prevent any flicker
+                // Set both flags to true to ensure consistent UI state
+                setIsSessionEnded(true);
+                setIsLastInterval(true);
                 setCountdown(0);
                 setCurrentInterval(0);
                 setWaitingForConfirmation(false);
 
-                // End the training - resets all states and stops all sounds
-                stopTraining();
+                // Use setTimeout to ensure the UI updates before stopping training
+                setTimeout(() => {
+                    // End the training - resets all states and stops all sounds
+                    stopTraining();
+                }, 0);
             } else {
-                console.log("Setting new interval");
-                // Otherwise, set a new interval
-                setNewInterval();
+                // Double-check that we're not in the process of ending the session
+                // This prevents setting a new interval when the session is ending
+                if (!isSessionEnded && !isLastInterval) {
+                    console.log("Setting new interval");
+                    // Otherwise, set a new interval
+                    setNewInterval();
+                } else {
+                    console.log("Not setting new interval - session is ending");
+                    // If we somehow got here with isSessionEnded or isLastInterval true,
+                    // stop the training instead of setting a new interval
+                    setTimeout(() => {
+                        stopTraining();
+                    }, 0);
+                }
             }
         }
     }, [
@@ -593,9 +625,21 @@ export default function HomePage() {
     ]);
 
     const playGongSequence = useCallback(() => {
+        // Log when this function is called to help with debugging
+        console.log("playGongSequence called with state:", {
+            isSessionEnded,
+            isLastInterval,
+        });
+
         // Funkcja odtwarzająca sekwencję dźwiękową (gong1, gong2, gong3, gong4)
         // Wywoływana, gdy countdown dojdzie do 0
-        if (!isActiveRef.current || isSessionEnded || isLastInterval) return;
+        // Early return if the session is ending or has ended
+        if (!isActiveRef.current || isSessionEnded || isLastInterval) {
+            console.log(
+                "Not playing gong sequence - session is ending or inactive"
+            );
+            return;
+        }
 
         // Ustaw flagę, że sekwencja dźwiękowa jest odtwarzana
         setIsGongSequencePlaying(true);
@@ -606,6 +650,14 @@ export default function HomePage() {
         // Clear the session timer when gong sequence starts
         if (sessionTimerRef.current) {
             clearTimeout(sessionTimerRef.current);
+        }
+
+        // Final check before playing the gong sequence
+        // This ensures we don't play the gong sequence if the session state changed
+        if (isSessionEnded || isLastInterval) {
+            console.log("Session state changed, not playing gong sequence");
+            setIsGongSequencePlaying(false);
+            return;
         }
 
         // Rozpocznij odtwarzanie sekwencji dźwiękowej
