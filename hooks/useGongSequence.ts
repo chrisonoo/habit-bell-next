@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { CONFIG as TRAINING_CONFIG } from "@/lib/config";
 import { CONFIG as POMODORO_CONFIG } from "@/lib/config-pomodoro";
+import { audioService } from "@/services/audioService";
 
 /**
  * Interface defining the settings structure used for gong sequence configuration
@@ -23,12 +24,6 @@ interface UseGongSequenceReturn {
     waitingForConfirmation: boolean;
     setWaitingForConfirmation: (value: boolean) => void;
     setIsGongSequencePlaying: (value: boolean) => void;
-
-    // Audio references
-    audioRefs: React.MutableRefObject<HTMLAudioElement[]>;
-    audio2Ref: React.MutableRefObject<HTMLAudioElement | null>;
-    audio3Ref: React.MutableRefObject<HTMLAudioElement | null>;
-    audio4Ref: React.MutableRefObject<HTMLAudioElement | null>;
 
     // Functions
     initializeAudio: () => Promise<void>;
@@ -53,11 +48,7 @@ export function useGongSequence(
     const [waitingForConfirmation, setWaitingForConfirmation] = useState(false);
     const [audioInitialized, setAudioInitialized] = useState(false);
 
-    // References to audio elements for playing gong sounds
-    const audioRefs = useRef<HTMLAudioElement[]>([]);
-    const audio2Ref = useRef<HTMLAudioElement | null>(null);
-    const audio3Ref = useRef<HTMLAudioElement | null>(null);
-    const audio4Ref = useRef<HTMLAudioElement | null>(null);
+    // Reference for sequence timers
     const gongSequenceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     // Reference to track active state for use in callbacks
@@ -70,36 +61,18 @@ export function useGongSequence(
 
     /**
      * Initializes all audio elements needed for the application
-     * Creates audio elements and sets up event handlers without trying to play them
+     * Uses the audioService to initialize audio elements
      */
     const initializeAudio = useCallback(async () => {
         try {
-            console.log("Initializing audio elements...");
+            console.log("Initializing audio via audioService...");
 
-            // Create audio elements for all gong sounds if they don't exist yet
-            if (audioRefs.current.length === 0) {
-                audioRefs.current = TRAINING_CONFIG.AUDIO_URLS.GONG1.map(
-                    (url) => {
-                        const audio = new Audio(url);
-                        audio.preload = "auto";
-                        return audio;
-                    }
-                );
-            }
-
-            if (!audio2Ref.current) {
-                audio2Ref.current = new Audio(TRAINING_CONFIG.AUDIO_URLS.GONG2);
-                audio2Ref.current.preload = "auto";
-            }
-
-            if (!audio3Ref.current) {
-                audio3Ref.current = new Audio(TRAINING_CONFIG.AUDIO_URLS.GONG3);
-                audio3Ref.current.preload = "auto";
-            }
-
-            if (!audio4Ref.current) {
-                audio4Ref.current = new Audio(TRAINING_CONFIG.AUDIO_URLS.GONG4);
-                audio4Ref.current.preload = "auto";
+            // Only initialize if not already initialized
+            if (!audioService.isInitialized()) {
+                const CONFIG = isPomodoroMode
+                    ? POMODORO_CONFIG
+                    : TRAINING_CONFIG;
+                await audioService.initialize(CONFIG.AUDIO_URLS);
             }
 
             setAudioInitialized(true);
@@ -107,17 +80,7 @@ export function useGongSequence(
         } catch (error) {
             console.error("Audio initialization failed:", error);
         }
-    }, []);
-
-    /**
-     * Gets a random gong sound from the available options
-     */
-    const getRandomGong1 = useCallback(() => {
-        const randomIndex = Math.floor(
-            Math.random() * audioRefs.current.length
-        );
-        return audioRefs.current[randomIndex];
-    }, []);
+    }, [isPomodoroMode]);
 
     /**
      * Stops the fourth gong sound (end of session sound)
@@ -125,14 +88,9 @@ export function useGongSequence(
     const stopGong4 = useCallback(() => {
         console.log("Stopping gong4 sound");
 
-        if (audio4Ref.current) {
-            try {
-                audio4Ref.current.loop = false;
-                audio4Ref.current.pause();
-                audio4Ref.current.currentTime = 0;
-            } catch (error) {
-                console.error("Error stopping gong4:", error);
-            }
+        const gong4 = audioService.getGong("gong4");
+        if (gong4) {
+            audioService.stopAudio(gong4);
         } else {
             console.warn("Cannot stop gong4 - audio not available");
         }
@@ -143,36 +101,19 @@ export function useGongSequence(
      * Used to signal the end of a session or when waiting for user confirmation
      */
     const startGong4Loop = useCallback(() => {
-        if (!isActiveRef.current || !audio4Ref.current) {
-            console.log(
-                "Cannot start gong4 loop - inactive session or audio not available"
-            );
+        if (!isActiveRef.current) {
+            console.log("Cannot start gong4 loop - inactive session");
             return;
         }
 
         console.log("Starting gong4 loop");
 
-        const playGong4 = () => {
-            if (!isActiveRef.current || !audio4Ref.current) return;
-
-            // Reset the audio to ensure it plays from the beginning
-            audio4Ref.current.currentTime = 0;
-
-            audio4Ref.current.play().catch((error) => {
-                console.error("Gong4 playback failed:", error);
-                // Try again after a short delay if playback fails
-                setTimeout(() => {
-                    if (isActiveRef.current && audio4Ref.current) {
-                        audio4Ref.current.play().catch((e) => {
-                            console.error("Retry gong4 playback failed:", e);
-                        });
-                    }
-                }, 1000);
-            });
-        };
-
-        audio4Ref.current.loop = true;
-        playGong4();
+        const gong4 = audioService.getGong("gong4");
+        if (gong4) {
+            audioService.startAudioLoop(gong4);
+        } else {
+            console.warn("Cannot start gong4 loop - audio not available");
+        }
     }, []);
 
     /**
@@ -213,7 +154,8 @@ export function useGongSequence(
         console.log("Playing third gong sound");
 
         // Play the third gong sound
-        if (audio3Ref.current) {
+        const gong3 = audioService.getGong("gong3");
+        if (gong3) {
             gongSequenceTimerRef.current = setTimeout(() => {
                 if (
                     isActiveRef.current &&
@@ -222,13 +164,10 @@ export function useGongSequence(
                 ) {
                     setIsGongPlaying(true);
 
-                    // Reset the audio to ensure it plays from the beginning
-                    audio3Ref.current!.currentTime = 0;
-
-                    audio3Ref
-                        .current!.play()
+                    audioService
+                        .playAudio(gong3)
                         .then(() => {
-                            audio3Ref.current!.onended = () => {
+                            gong3.onended = () => {
                                 if (isActiveRef.current) {
                                     setIsGongPlaying(false);
                                     setWaitingForConfirmation(true);
@@ -292,16 +231,14 @@ export function useGongSequence(
 
             console.log(`Playing second gong sound (${count + 1}/5)`);
 
-            if (audio2Ref.current) {
+            const gong2 = audioService.getGong("gong2");
+            if (gong2) {
                 setIsGongPlaying(true);
 
-                // Reset the audio to ensure it plays from the beginning
-                audio2Ref.current.currentTime = 0;
-
-                audio2Ref.current
-                    .play()
+                audioService
+                    .playAudio(gong2)
                     .then(() => {
-                        audio2Ref.current!.onended = () => {
+                        gong2.onended = () => {
                             if (isActiveRef.current) {
                                 setIsGongPlaying(false);
                                 count++;
@@ -404,16 +341,13 @@ export function useGongSequence(
         const CONFIG = isPomodoroMode ? POMODORO_CONFIG : TRAINING_CONFIG;
 
         // Play a random gong sound from the available options
-        const randomGong = getRandomGong1();
+        const randomGong = audioService.getRandomGong1();
         if (randomGong) {
             setIsGongPlaying(true);
             console.log("Playing first gong sound");
 
-            // Reset the audio to ensure it plays from the beginning
-            randomGong.currentTime = 0;
-
-            randomGong
-                .play()
+            audioService
+                .playAudio(randomGong)
                 .then(() => {
                     randomGong.onended = () => {
                         if (isActiveRef.current) {
@@ -446,7 +380,7 @@ export function useGongSequence(
                     1000
             );
         }
-    }, [isPomodoroMode, getRandomGong1, playSecondGongSequence]);
+    }, [isPomodoroMode, playSecondGongSequence]);
 
     /**
      * Starts playing the complete gong sequence
@@ -520,23 +454,7 @@ export function useGongSequence(
         }
 
         // Stop all audio playback
-        audioRefs.current.forEach((audio) => {
-            audio.pause();
-            audio.currentTime = 0;
-        });
-        if (audio2Ref.current) {
-            audio2Ref.current.pause();
-            audio2Ref.current.currentTime = 0;
-        }
-        if (audio3Ref.current) {
-            audio3Ref.current.pause();
-            audio3Ref.current.currentTime = 0;
-        }
-        if (audio4Ref.current) {
-            audio4Ref.current.loop = false;
-            audio4Ref.current.pause();
-            audio4Ref.current.currentTime = 0;
-        }
+        audioService.stopAllAudio();
 
         // Reset state
         setIsGongPlaying(false);
@@ -552,23 +470,7 @@ export function useGongSequence(
             }
 
             // Stop all audio playback
-            audioRefs.current.forEach((audio) => {
-                audio.pause();
-                audio.currentTime = 0;
-            });
-            if (audio2Ref.current) {
-                audio2Ref.current.pause();
-                audio2Ref.current.currentTime = 0;
-            }
-            if (audio3Ref.current) {
-                audio3Ref.current.pause();
-                audio3Ref.current.currentTime = 0;
-            }
-            if (audio4Ref.current) {
-                audio4Ref.current.loop = false;
-                audio4Ref.current.pause();
-                audio4Ref.current.currentTime = 0;
-            }
+            audioService.stopAllAudio();
         };
     }, []);
 
@@ -579,12 +481,6 @@ export function useGongSequence(
         waitingForConfirmation,
         setWaitingForConfirmation,
         setIsGongSequencePlaying,
-
-        // Audio references
-        audioRefs,
-        audio2Ref,
-        audio3Ref,
-        audio4Ref,
 
         // Functions
         initializeAudio,
