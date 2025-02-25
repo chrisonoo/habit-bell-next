@@ -33,18 +33,18 @@ export function TrainingStatus({
         );
     }
 
-    if (waitingForConfirmation || countdown === 0 || isGongSequencePlaying) {
-        return (
-            <div className="text-xl sm:text-2xl font-bold text-red-500">
-                Stand up now!
-            </div>
-        );
-    }
-
     if (isLastInterval) {
         return (
             <div className="text-xl sm:text-2xl font-bold text-yellow-500">
                 Complete your last stand!
+            </div>
+        );
+    }
+
+    if (waitingForConfirmation || countdown === 0 || isGongSequencePlaying) {
+        return (
+            <div className="text-xl sm:text-2xl font-bold text-red-500">
+                Stand up now!
             </div>
         );
     }

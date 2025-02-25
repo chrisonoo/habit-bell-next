@@ -124,7 +124,9 @@ export default function HomePage() {
     }, []);
 
     useEffect(() => {
+        // Ten useEffect odpowiada za odliczanie czasu do następnego gongu
         if (isActive && isTraining && countdown > 0) {
+            // Jeśli countdown > 0, odliczaj czas
             countdownTimerRef.current = setTimeout(() => {
                 if (isActiveRef.current) {
                     setCountdown(countdown - 1);
@@ -134,15 +136,24 @@ export default function HomePage() {
             isActive &&
             isTraining &&
             countdown === 0 &&
-            !isSessionEnded
+            !isSessionEnded &&
+            !isLastInterval
         ) {
+            // Jeśli countdown = 0 i sesja nie zakończyła się i nie jest to ostatni interwał,
+            // odtwórz sekwencję dźwiękową
             playGongSequence();
         } else if (
             isActive &&
             isTraining &&
             countdown === 0 &&
-            isSessionEnded
+            (isSessionEnded || isLastInterval)
         ) {
+            // Jeśli to ostatni interwał, ale sesja jeszcze nie jest oznaczona jako zakończona,
+            // oznacz ją jako zakończoną
+            if (isLastInterval && !isSessionEnded) {
+                setIsSessionEnded(true);
+            }
+
             // Jeśli sesja się zakończyła i odliczanie doszło do zera,
             // ustawiamy waitingForConfirmation na true, aby umożliwić kliknięcie Finish Training
             setWaitingForConfirmation(true);
@@ -155,11 +166,12 @@ export default function HomePage() {
                 });
             }
         }
+        // Cleanup - zatrzymaj timer przy odmontowaniu komponentu lub zmianie zależności
         return () => {
             if (countdownTimerRef.current)
                 clearTimeout(countdownTimerRef.current);
         };
-    }, [isActive, isTraining, countdown, isSessionEnded]);
+    }, [isActive, isTraining, countdown, isSessionEnded, isLastInterval]);
 
     useEffect(() => {
         if (isActive && isTraining && !isGongSequencePlaying) {
@@ -168,10 +180,13 @@ export default function HomePage() {
                     if (sessionTimeLeft > 0) {
                         setSessionTimeLeft(sessionTimeLeft - 1);
                     } else if (!isSessionEnded) {
+                        // Gdy sesja się kończy, ustawiamy oba stany jednocześnie
+                        // isSessionEnded = true oznacza, że czas sesji się skończył
+                        // isLastInterval = true oznacza, że bieżący interwał jest ostatnim
                         setIsSessionEnded(true);
                         setIsLastInterval(true);
                         // Jeśli countdown jest już na 0, ustawiamy waitingForConfirmation na true
-                        // i uruchamiamy dźwięk gong4 w pętli
+                        // i uruchamiamy dźwięk gong4 w pętli, aby zasygnalizować koniec treningu
                         if (countdown === 0) {
                             setWaitingForConfirmation(true);
                             // Uruchamiamy dźwięk gong4 w pętli, aby zasygnalizować koniec treningu
@@ -258,6 +273,34 @@ export default function HomePage() {
         setIsLastInterval(false);
         setWaitingForConfirmation(false);
         setIsGongSequencePlaying(false);
+        setIsGongPlaying(false);
+        setCountdown(0);
+        setCurrentInterval(0);
+
+        // Immediately stop all audio playback
+        audioRefs.current.forEach((audio) => {
+            audio.pause();
+            audio.currentTime = 0;
+        });
+        if (audio2Ref.current) {
+            audio2Ref.current.pause();
+            audio2Ref.current.currentTime = 0;
+        }
+        if (audio3Ref.current) {
+            audio3Ref.current.pause();
+            audio3Ref.current.currentTime = 0;
+        }
+        if (audio4Ref.current) {
+            audio4Ref.current.loop = false;
+            audio4Ref.current.pause();
+            audio4Ref.current.currentTime = 0;
+        }
+
+        // Clear all timers
+        if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
+        if (countdownTimerRef.current) clearTimeout(countdownTimerRef.current);
+        if (gongSequenceTimerRef.current)
+            clearTimeout(gongSequenceTimerRef.current);
 
         // Set new interval
         setNewInterval();
@@ -303,9 +346,17 @@ export default function HomePage() {
     }, []);
 
     const setNewInterval = useCallback(() => {
-        // Jeśli sesja się zakończyła, nie ustawiaj nowego interwału
+        // Funkcja ustawiająca nowy losowy interwał
+        // Jeśli sesja się zakończyła lub jest to ostatni interwał, nie ustawiaj nowego interwału
         // tylko aktywuj przycisk "Finish Training" i uruchom dźwięk gong4 w pętli
-        if (isSessionEnded) {
+        if (isSessionEnded || isLastInterval) {
+            // Jeśli to ostatni interwał, ale sesja jeszcze nie jest oznaczona jako zakończona,
+            // oznacz ją jako zakończoną
+            if (isLastInterval && !isSessionEnded) {
+                setIsSessionEnded(true);
+            }
+
+            // Aktywuj przycisk "Finish Training"
             setWaitingForConfirmation(true);
             // Uruchamiamy dźwięk gong4 w pętli, aby zasygnalizować koniec treningu
             if (audio4Ref.current) {
@@ -372,6 +423,7 @@ export default function HomePage() {
         isPomodoroMode,
         currentSettings,
         isSessionEnded,
+        isLastInterval,
         setWaitingForConfirmation,
     ]);
 
@@ -469,14 +521,21 @@ export default function HomePage() {
     }, []);
 
     const handleStoodUp = useCallback(() => {
-        // Jeśli trening jest aktywny i przycisk jest aktywny
+        // Funkcja wywoływana po kliknięciu przycisku "Let's go!" lub "Finish Training"
+        // Przycisk jest aktywny tylko wtedy, gdy waitingForConfirmation lub isSessionEnded jest true
         if (isTraining && (waitingForConfirmation || isSessionEnded)) {
-            // Zatrzymaj dźwięk gong4
+            // Zatrzymaj dźwięk gong4 (dźwięk w pętli)
             stopGong4();
             setIsGongSequencePlaying(false);
 
             // Jeśli sesja się zakończyła lub jest to ostatni interwał, zakończ trening
             if (isSessionEnded || isLastInterval) {
+                // Jeśli to ostatni interwał, ale sesja jeszcze nie jest oznaczona jako zakończona,
+                // oznacz ją jako zakończoną
+                if (isLastInterval && !isSessionEnded) {
+                    setIsSessionEnded(true);
+                }
+                // Zakończ trening - resetuje wszystkie stany i zatrzymuje wszystkie dźwięki
                 stopTraining();
             } else {
                 // W przeciwnym razie ustaw nowy interwał
@@ -495,10 +554,20 @@ export default function HomePage() {
     ]);
 
     const playGongSequence = useCallback(() => {
+        // Funkcja odtwarzająca sekwencję dźwiękową (gong1, gong2, gong3, gong4)
+        // Wywoływana, gdy countdown dojdzie do 0
         if (!isActiveRef.current) return;
 
-        // Sprawdź, czy sesja się zakończyła
-        if (isSessionEnded) {
+        // Sprawdź, czy sesja się zakończyła lub jest to ostatni interwał
+        // Jeśli tak, nie odtwarzaj sekwencji dźwiękowej, tylko aktywuj przycisk "Finish Training"
+        if (isSessionEnded || isLastInterval) {
+            // Jeśli to ostatni interwał, ale sesja jeszcze nie jest oznaczona jako zakończona,
+            // oznacz ją jako zakończoną
+            if (isLastInterval && !isSessionEnded) {
+                setIsSessionEnded(true);
+            }
+
+            // Aktywuj przycisk "Finish Training"
             setWaitingForConfirmation(true);
             // Uruchamiamy dźwięk gong4 w pętli, aby zasygnalizować koniec treningu
             if (audio4Ref.current) {
@@ -511,6 +580,7 @@ export default function HomePage() {
             return;
         }
 
+        // Ustaw flagę, że sekwencja dźwiękowa jest odtwarzana
         setIsGongSequencePlaying(true);
 
         // Upewnij się, że countdown jest ustawiony na 0
@@ -521,8 +591,9 @@ export default function HomePage() {
             clearTimeout(sessionTimerRef.current);
         }
 
+        // Rozpocznij odtwarzanie sekwencji dźwiękowej
         playFirstGong();
-    }, [setCountdown, isSessionEnded]);
+    }, [setCountdown, isSessionEnded, isLastInterval]);
 
     const getRandomGong1 = useCallback(() => {
         const randomIndex = Math.floor(
