@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { CONFIG as TRAINING_CONFIG } from "@/lib/config";
-import { CONFIG as POMODORO_CONFIG } from "@/lib/config-pomodoro";
 import { useActiveConfig } from "@/hooks/useActiveConfig";
 import { useGongSequence } from "@/hooks/useGongSequence";
 import { useTrainingTimer } from "@/hooks/useTrainingTimer";
@@ -47,7 +45,6 @@ export function useTrainingState(): UseTrainingStateReturn {
 
     // Create refs for functions that will be defined later
     const playGongSequenceRef = useRef<() => void>(() => {});
-    const startGong4LoopRef = useRef<() => void>(() => {});
 
     // Create a state for isGongSequencePlaying to avoid circular dependencies
     const [isGongSequencePlayingState, setIsGongSequencePlayingState] =
@@ -71,12 +68,9 @@ export function useTrainingState(): UseTrainingStateReturn {
         isSessionEnded,
         lastTickTimestamp,
         setCountdown,
-        setSessionTimeLeft,
-        setIsSessionEnded,
         setLastTickTimestamp,
         startTimer,
         stopTimer,
-        resetTimers,
     } = useTrainingTimer(
         isActive,
         isTraining,
@@ -95,15 +89,13 @@ export function useTrainingState(): UseTrainingStateReturn {
         initializeAudio,
         playGongSequence,
         stopGong4,
-        startGong4Loop,
         resetGongState,
     } = useGongSequence(isPomodoroMode, isActive, isSessionEnded);
 
     // Update the refs with the actual functions
     useEffect(() => {
         playGongSequenceRef.current = playGongSequence;
-        startGong4LoopRef.current = startGong4Loop;
-    }, [playGongSequence, startGong4Loop]);
+    }, [playGongSequence]);
 
     // Update the isGongSequencePlayingState whenever isGongSequencePlaying changes
     useEffect(() => {
@@ -251,7 +243,6 @@ export function useTrainingState(): UseTrainingStateReturn {
         console.log("setNewInterval called with state:", {
             isSessionEnded,
             waitingForConfirmation,
-            countdown,
         });
 
         // Early return if the session is ending or has ended
@@ -303,7 +294,6 @@ export function useTrainingState(): UseTrainingStateReturn {
     }, [
         isSessionEnded,
         waitingForConfirmation,
-        countdown,
         setCountdown,
         getLatestSettings,
     ]);
@@ -321,7 +311,6 @@ export function useTrainingState(): UseTrainingStateReturn {
             isTraining,
             waitingForConfirmation,
             isSessionEnded,
-            countdown,
         });
 
         // Stop the gong4 sound first in all cases

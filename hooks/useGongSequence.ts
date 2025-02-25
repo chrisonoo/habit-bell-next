@@ -101,26 +101,27 @@ export function useGongSequence(
      * Used to signal the end of a session or when waiting for user confirmation
      */
     const startGong4Loop = useCallback(() => {
-        const gong4 = audioService.getGong("gong4");
-
-        // Only start gong4 loop if we're waiting for confirmation
-        // This ensures it only plays after the sequence is complete
-        if (!isActiveRef.current || !waitingForConfirmation) {
-            if (gong4) {
-                audioService.startAudioLoop(gong4);
-            }
-            console.log("Start gong4 loop");
+        // Only start gong4 loop if we're active
+        if (!isActiveRef.current) {
+            console.log("Cannot start gong4 loop - inactive session");
             return;
-        } else {
-            console.warn("Cannot start gong4 loop - audio not available");
         }
 
         // Don't start gong4 loop if it's already playing
+        const gong4 = audioService.getGong("gong4");
         if (gong4 && gong4.paused === false) {
             console.log("Gong4 already playing, not starting again");
             return;
         }
-    }, [waitingForConfirmation]);
+
+        console.log("Starting gong4 loop");
+
+        if (gong4) {
+            audioService.startAudioLoop(gong4);
+        } else {
+            console.warn("Cannot start gong4 loop - audio not available");
+        }
+    }, []);
 
     /**
      * Plays the third gong sound in the sequence
