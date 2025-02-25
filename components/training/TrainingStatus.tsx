@@ -39,7 +39,7 @@ export function TrainingStatus({
         );
     }
 
-    if (countdown > 0) {
+    if (countdown > 0 && !isSessionEnded) {
         return (
             <div className="flex flex-col sm:flex-row items-center justify-center">
                 <div className="text-xl sm:text-2xl font-bold">

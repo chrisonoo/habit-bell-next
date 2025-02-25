@@ -552,7 +552,6 @@ export default function HomePage() {
         if (isTraining && (waitingForConfirmation || isSessionEnded)) {
             // Stop the gong4 sound (looping sound)
             stopGong4();
-            setIsGongSequencePlaying(false);
 
             // If the session has ended, end the training
             // This is the key fix: when isSessionEnded is true,
@@ -560,21 +559,15 @@ export default function HomePage() {
             if (isSessionEnded) {
                 console.log("Session ended, stopping training");
 
-                // Immediately update UI state variables to prevent any flicker
-                // Ensure countdown is reset to 0 first to prevent UI flicker
-                setCountdown(0);
-                setCurrentInterval(0);
-                setWaitingForConfirmation(false);
-
-                // Use setTimeout to ensure the UI updates before stopping training
-                setTimeout(() => {
-                    // End the training - resets all states and stops all sounds
-                    stopTraining();
-                }, 0);
+                // FIXED: Call stopTraining directly instead of updating state piecemeal
+                // This ensures all state updates happen in one batch and prevents UI flicker
+                stopTraining();
             } else {
                 // Double-check that we're not in the process of ending the session
                 // This prevents setting a new interval when the session is ending
                 if (!isSessionEnded) {
+                    // Update UI state for normal interval progression
+                    setIsGongSequencePlaying(false);
                     console.log("Setting new interval");
                     // Otherwise, set a new interval
                     setNewInterval();
@@ -582,9 +575,7 @@ export default function HomePage() {
                     console.log("Not setting new interval - session is ending");
                     // If we somehow got here with isSessionEnded true,
                     // stop the training instead of setting a new interval
-                    setTimeout(() => {
-                        stopTraining();
-                    }, 0);
+                    stopTraining();
                 }
             }
         }
