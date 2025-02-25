@@ -307,6 +307,14 @@ export function useTrainingState(): UseTrainingStateReturn {
         );
         console.log("Generated new interval:", newInterval);
 
+        // Final check to ensure session hasn't ended
+        if (isSessionEnded) {
+            console.log(
+                "Session has ended during interval generation, aborting"
+            );
+            return;
+        }
+
         // Update state with the new interval
         setCountdown(newInterval);
     }, [
@@ -339,9 +347,8 @@ export function useTrainingState(): UseTrainingStateReturn {
             if (isSessionEnded) {
                 setCountdown(0);
                 stopGong4();
-                setTimeout(() => {
-                    stopTraining();
-                }, 0);
+                // Use immediate execution instead of setTimeout to avoid race conditions
+                stopTraining();
             } else {
                 stopGong4();
                 // Set new interval first

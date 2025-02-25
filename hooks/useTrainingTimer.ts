@@ -68,11 +68,14 @@ export function useTrainingTimer(
      */
     const stopTimer = useCallback(() => {
         console.log("Stopping timer");
+
+        // Cancel any pending animation frame
         if (animationFrameIdRef.current) {
             cancelAnimationFrame(animationFrameIdRef.current);
             animationFrameIdRef.current = null;
         }
 
+        // Reset all timer state
         setCountdown(0);
         setSessionTimeLeft(0);
         setIsSessionEnded(false);
@@ -125,6 +128,13 @@ export function useTrainingTimer(
                     countdown
                 );
 
+                // If session has ended, don't update anything
+                if (isSessionEnded) {
+                    animationFrameIdRef.current =
+                        requestAnimationFrame(updateTimers);
+                    return;
+                }
+
                 // Update countdown
                 if (countdown > 0) {
                     const newCountdown = countdown - 1;
@@ -138,10 +148,20 @@ export function useTrainingTimer(
 
                 // Update session time only if gong sequence is not playing
                 if (!isGongSequencePlaying && sessionTimeLeft > 0) {
-                    setSessionTimeLeft((prev) => Math.max(0, prev - 1));
-                } else if (sessionTimeLeft === 0 && !isSessionEnded) {
-                    setIsSessionEnded(true);
-                    onSessionEnd();
+                    const newSessionTime = sessionTimeLeft - 1;
+                    setSessionTimeLeft(newSessionTime);
+
+                    // If session time just reached zero, end the session
+                    if (newSessionTime === 0) {
+                        setIsSessionEnded(true);
+                        onSessionEnd();
+                        // Cancel the animation frame to stop further updates
+                        if (animationFrameIdRef.current) {
+                            cancelAnimationFrame(animationFrameIdRef.current);
+                            animationFrameIdRef.current = null;
+                        }
+                        return;
+                    }
                 }
             }
 
