@@ -187,10 +187,15 @@ export default function HomePage() {
                         setSessionTimeLeft(sessionTimeLeft - 1);
                     } else if (!isSessionEnded) {
                         // When the session time runs out:
-                        // Set isSessionEnded = true to indicate the session has ended
+                        // Batch state updates to prevent UI flicker
+                        // IMPORTANT: Reset countdown to 0 BEFORE setting isSessionEnded to true
+                        // This prevents the "Next gong in:" message from flashing
+                        setCountdown(0);
+
+                        // Now set isSessionEnded to true
                         setIsSessionEnded(true);
 
-                        // If countdown is already at 0, enable the "Finish Training" button
+                        // If countdown was already at 0, enable the "Finish Training" button
                         // and play the end-of-training sound
                         if (countdown === 0) {
                             setWaitingForConfirmation(true);
@@ -556,7 +561,7 @@ export default function HomePage() {
                 console.log("Session ended, stopping training");
 
                 // Immediately update UI state variables to prevent any flicker
-                setIsSessionEnded(true);
+                // Ensure countdown is reset to 0 first to prevent UI flicker
                 setCountdown(0);
                 setCurrentInterval(0);
                 setWaitingForConfirmation(false);
