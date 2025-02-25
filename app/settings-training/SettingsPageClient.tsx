@@ -15,6 +15,8 @@ import {
     AccordionItem,
     AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 interface Settings {
     // Session settings
@@ -225,7 +227,7 @@ export default function SettingsPageClient() {
     return (
         <Card className="w-full max-w-[600px] mx-auto">
             <CardHeader>
-                <CardTitle>Settings</CardTitle>
+                <CardTitle>Training Settings</CardTitle>
             </CardHeader>
             <CardContent className="space-y-8">
                 {/* Main settings */}
@@ -253,6 +255,12 @@ export default function SettingsPageClient() {
                         defaultMaxInterval={settings.defaultMaxInterval}
                         isTraining={false}
                     />
+
+                    <div className="flex flex-col items-center mt-6">
+                        <Button asChild className="w-full sm:w-auto px-8">
+                            <Link href="/">Save & Return</Link>
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Advanced settings in Accordion */}

@@ -9,7 +9,7 @@ export const CONFIG = {
     DEFAULT_MAX_INTERVAL: 30,
     MIN_INTERVAL: 10,
     MAX_INTERVAL: 120,
-    STEP_INTERVAL: 1,
+    STEP_INTERVAL: 5,
 
     // Pause durations
     DEFAULT_PAUSE1_DURATION: 0.8,
