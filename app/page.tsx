@@ -125,7 +125,13 @@ export default function HomePage() {
 
     useEffect(() => {
         // Ten useEffect odpowiada za odliczanie czasu do następnego gongu
-        if (isActive && isTraining && countdown > 0) {
+        if (
+            isActive &&
+            isTraining &&
+            countdown > 0 &&
+            !isSessionEnded &&
+            !isLastInterval
+        ) {
             // Jeśli countdown > 0, odliczaj czas
             countdownTimerRef.current = setTimeout(() => {
                 if (isActiveRef.current) {
@@ -180,16 +186,17 @@ export default function HomePage() {
                     if (sessionTimeLeft > 0) {
                         setSessionTimeLeft(sessionTimeLeft - 1);
                     } else if (!isSessionEnded) {
-                        // Gdy sesja się kończy, ustawiamy oba stany jednocześnie
-                        // isSessionEnded = true oznacza, że czas sesji się skończył
-                        // isLastInterval = true oznacza, że bieżący interwał jest ostatnim
+                        // When the session time runs out:
+                        // 1. Set isSessionEnded = true to indicate the session has ended
+                        // 2. Set isLastInterval = true to indicate this is the last interval
+                        // These two flags together ensure the training will end properly
                         setIsSessionEnded(true);
                         setIsLastInterval(true);
-                        // Jeśli countdown jest już na 0, ustawiamy waitingForConfirmation na true
-                        // i uruchamiamy dźwięk gong4 w pętli, aby zasygnalizować koniec treningu
+
+                        // If countdown is already at 0, enable the "Finish Training" button
+                        // and play the end-of-training sound
                         if (countdown === 0) {
                             setWaitingForConfirmation(true);
-                            // Uruchamiamy dźwięk gong4 w pętli, aby zasygnalizować koniec treningu
                             if (audio4Ref.current) {
                                 audio4Ref.current.loop = true;
                                 audio4Ref.current.currentTime = 0;
@@ -350,12 +357,6 @@ export default function HomePage() {
         // Jeśli sesja się zakończyła lub jest to ostatni interwał, nie ustawiaj nowego interwału
         // tylko aktywuj przycisk "Finish Training" i uruchom dźwięk gong4 w pętli
         if (isSessionEnded || isLastInterval) {
-            // Jeśli to ostatni interwał, ale sesja jeszcze nie jest oznaczona jako zakończona,
-            // oznacz ją jako zakończoną
-            if (isLastInterval && !isSessionEnded) {
-                setIsSessionEnded(true);
-            }
-
             // Aktywuj przycisk "Finish Training"
             setWaitingForConfirmation(true);
             // Uruchamiamy dźwięk gong4 w pętli, aby zasygnalizować koniec treningu
@@ -521,24 +522,21 @@ export default function HomePage() {
     }, []);
 
     const handleStoodUp = useCallback(() => {
-        // Funkcja wywoływana po kliknięciu przycisku "Let's go!" lub "Finish Training"
-        // Przycisk jest aktywny tylko wtedy, gdy waitingForConfirmation lub isSessionEnded jest true
+        // This function is called when the user clicks the "Let's go!" or "Finish Training" button
+        // The button is only active when waitingForConfirmation or isSessionEnded is true
         if (isTraining && (waitingForConfirmation || isSessionEnded)) {
-            // Zatrzymaj dźwięk gong4 (dźwięk w pętli)
+            // Stop the gong4 sound (looping sound)
             stopGong4();
             setIsGongSequencePlaying(false);
 
-            // Jeśli sesja się zakończyła lub jest to ostatni interwał, zakończ trening
+            // If the session has ended or this is the last interval, end the training
+            // This is the key fix: when isSessionEnded or isLastInterval is true,
+            // we immediately stop the training without setting a new interval
             if (isSessionEnded || isLastInterval) {
-                // Jeśli to ostatni interwał, ale sesja jeszcze nie jest oznaczona jako zakończona,
-                // oznacz ją jako zakończoną
-                if (isLastInterval && !isSessionEnded) {
-                    setIsSessionEnded(true);
-                }
-                // Zakończ trening - resetuje wszystkie stany i zatrzymuje wszystkie dźwięki
+                // End the training - resets all states and stops all sounds
                 stopTraining();
             } else {
-                // W przeciwnym razie ustaw nowy interwał
+                // Otherwise, set a new interval
                 setNewInterval();
             }
         }
@@ -556,29 +554,7 @@ export default function HomePage() {
     const playGongSequence = useCallback(() => {
         // Funkcja odtwarzająca sekwencję dźwiękową (gong1, gong2, gong3, gong4)
         // Wywoływana, gdy countdown dojdzie do 0
-        if (!isActiveRef.current) return;
-
-        // Sprawdź, czy sesja się zakończyła lub jest to ostatni interwał
-        // Jeśli tak, nie odtwarzaj sekwencji dźwiękowej, tylko aktywuj przycisk "Finish Training"
-        if (isSessionEnded || isLastInterval) {
-            // Jeśli to ostatni interwał, ale sesja jeszcze nie jest oznaczona jako zakończona,
-            // oznacz ją jako zakończoną
-            if (isLastInterval && !isSessionEnded) {
-                setIsSessionEnded(true);
-            }
-
-            // Aktywuj przycisk "Finish Training"
-            setWaitingForConfirmation(true);
-            // Uruchamiamy dźwięk gong4 w pętli, aby zasygnalizować koniec treningu
-            if (audio4Ref.current) {
-                audio4Ref.current.loop = true;
-                audio4Ref.current.currentTime = 0;
-                audio4Ref.current.play().catch((error) => {
-                    console.error("Gong4 playback failed:", error);
-                });
-            }
-            return;
-        }
+        if (!isActiveRef.current || isSessionEnded || isLastInterval) return;
 
         // Ustaw flagę, że sekwencja dźwiękowa jest odtwarzana
         setIsGongSequencePlaying(true);
