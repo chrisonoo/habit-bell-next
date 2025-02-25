@@ -11,6 +11,10 @@ import React, {
 import { CONFIG as TRAINING_CONFIG } from "../lib/config";
 import { CONFIG as POMODORO_CONFIG } from "../lib/config-pomodoro";
 
+/**
+ * Settings interface defines all configuration parameters for both training and pomodoro modes
+ * Contains session duration, interval settings, pause durations, and other settings
+ */
 interface Settings {
     // Session settings
     sessionDuration: number;
@@ -38,26 +42,41 @@ interface Settings {
     isThirdSoundEnabled: boolean;
 }
 
+/**
+ * Context type definition for the active configuration
+ * Provides methods and state for managing the active configuration mode and settings
+ */
 interface ActiveConfigContextType {
-    activeConfig: string;
-    updateActiveConfig: (newConfig: string) => void;
-    isPomodoroMode: boolean;
-    isTrainingMode: boolean;
-    isReady: boolean;
-    currentSettings: Settings | null;
-    loadSettings: (mode: string) => Promise<Settings>;
+    activeConfig: string; // Current active configuration mode ("training" or "pomodoro")
+    updateActiveConfig: (newConfig: string) => void; // Function to update the active configuration
+    isPomodoroMode: boolean; // Whether pomodoro mode is active
+    isTrainingMode: boolean; // Whether training mode is active
+    isReady: boolean; // Whether the configuration is ready to use
+    currentSettings: Settings | null; // Current settings for the active mode
+    loadSettings: (mode: string) => Promise<Settings>; // Function to load settings for a specific mode
 }
 
+// Create context with undefined default value
 const ActiveConfigContext = createContext<ActiveConfigContextType | undefined>(
     undefined
 );
 
+/**
+ * Provider component for the active configuration context
+ * Manages the active configuration mode and settings
+ */
 export function ActiveConfigProvider({ children }: { children: ReactNode }) {
     const [isReady, setIsReady] = useState(false);
     const [currentSettings, setCurrentSettings] = useState<Settings | null>(
         null
     );
 
+    /**
+     * Creates default settings based on the provided configuration
+     * @param config - The configuration object (TRAINING_CONFIG or POMODORO_CONFIG)
+     * @param mode - The mode ("training" or "pomodoro")
+     * @returns Default settings for the specified mode
+     */
     const createDefaultSettings = (
         config: typeof TRAINING_CONFIG | typeof POMODORO_CONFIG,
         mode: "pomodoro" | "training"
@@ -94,6 +113,12 @@ export function ActiveConfigProvider({ children }: { children: ReactNode }) {
         };
     };
 
+    /**
+     * Loads settings for the specified mode from localStorage
+     * If no settings are found, creates and saves default settings
+     * @param mode - The mode to load settings for ("training" or "pomodoro")
+     * @returns Promise resolving to the loaded settings
+     */
     const loadSettings = useCallback((mode: string) => {
         return new Promise<Settings>((resolve) => {
             const settingsKey =
@@ -102,6 +127,7 @@ export function ActiveConfigProvider({ children }: { children: ReactNode }) {
                 mode === "pomodoro" ? POMODORO_CONFIG : TRAINING_CONFIG;
 
             try {
+                // Try to load settings from localStorage
                 const savedSettings = localStorage.getItem(settingsKey);
                 if (savedSettings) {
                     const settings = JSON.parse(savedSettings);
@@ -124,6 +150,7 @@ export function ActiveConfigProvider({ children }: { children: ReactNode }) {
         });
     }, []);
 
+    // Initialize activeConfig from localStorage or default to "training"
     const [activeConfig, setActiveConfig] = useState(() => {
         if (typeof window !== "undefined") {
             const savedConfig =
@@ -142,6 +169,10 @@ export function ActiveConfigProvider({ children }: { children: ReactNode }) {
         }
     }, []); // Empty dependency array means this runs once on mount
 
+    /**
+     * Updates the active configuration mode and loads the corresponding settings
+     * @param newConfig - The new configuration mode to set
+     */
     const updateActiveConfig = useCallback(
         (newConfig: string) => {
             if (typeof window !== "undefined") {
@@ -162,6 +193,7 @@ export function ActiveConfigProvider({ children }: { children: ReactNode }) {
         }
     }, [activeConfig, loadSettings]);
 
+    // Prepare context value
     const value = {
         activeConfig,
         updateActiveConfig,
@@ -179,6 +211,12 @@ export function ActiveConfigProvider({ children }: { children: ReactNode }) {
     );
 }
 
+/**
+ * Custom hook to access the active configuration context
+ * Must be used within an ActiveConfigProvider
+ * @returns The active configuration context
+ * @throws Error if used outside of an ActiveConfigProvider
+ */
 export function useActiveConfig() {
     const context = useContext(ActiveConfigContext);
     if (context === undefined) {
