@@ -133,12 +133,304 @@ export default function HomePage() {
         initAudio();
     }, []);
 
+    const getRandomGong1 = useCallback(() => {
+        const randomIndex = Math.floor(
+            Math.random() * audioRefs.current.length
+        );
+        return audioRefs.current[randomIndex];
+    }, []);
+
+    const stopGong4 = useCallback(() => {
+        if (audio4Ref.current) {
+            audio4Ref.current.loop = false;
+            audio4Ref.current.pause();
+            audio4Ref.current.currentTime = 0;
+        }
+    }, []);
+
+    const startGong4Loop = useCallback(() => {
+        if (!isActiveRef.current || !audio4Ref.current) return;
+
+        const playGong4 = () => {
+            if (!isActiveRef.current || !audio4Ref.current) return;
+            audio4Ref.current.currentTime = 0;
+            audio4Ref.current.play().catch((error) => {
+                console.error("Gong4 playback failed:", error);
+            });
+        };
+
+        audio4Ref.current.loop = true;
+        playGong4();
+    }, []);
+
+    const playThirdGong = useCallback(() => {
+        // Always load the latest settings from localStorage directly
+        const settingsKey = isPomodoroMode
+            ? "pomodoroSettings"
+            : "trainingSettings";
+        let settings;
+
+        try {
+            const savedSettings = localStorage.getItem(settingsKey);
+            if (savedSettings) {
+                settings = JSON.parse(savedSettings);
+            } else {
+                settings = currentSettings;
+            }
+        } catch (error) {
+            console.error("Error loading settings from localStorage:", error);
+            settings = currentSettings;
+        }
+
+        if (!settings) {
+            console.error("No valid settings available");
+            return;
+        }
+
+        // Skip third sound if disabled or session is inactive
+        if (!isActiveRef.current || !settings.isThirdSoundEnabled) {
+            setWaitingForConfirmation(true);
+            startGong4Loop();
+            return;
+        }
+
+        // Play the third gong sound
+        if (audio3Ref.current) {
+            gongSequenceTimerRef.current = setTimeout(() => {
+                if (isActiveRef.current && settings.isThirdSoundEnabled) {
+                    setIsGongPlaying(true);
+                    audio3Ref
+                        .current!.play()
+                        .then(() => {
+                            audio3Ref.current!.onended = () => {
+                                if (isActiveRef.current) {
+                                    setIsGongPlaying(false);
+                                    setWaitingForConfirmation(true);
+                                    startGong4Loop();
+                                }
+                            };
+                        })
+                        .catch((error) => {
+                            console.error("Third gong playback failed:", error);
+                            if (isActiveRef.current) {
+                                setIsGongPlaying(false);
+                                setWaitingForConfirmation(true);
+                                startGong4Loop();
+                            }
+                        });
+                } else {
+                    setWaitingForConfirmation(true);
+                    startGong4Loop();
+                }
+            }, (settings.pause1Duration || CONFIG.DEFAULT_PAUSE1_DURATION) * 1000);
+        } else {
+            setWaitingForConfirmation(true);
+            startGong4Loop();
+        }
+    }, [isPomodoroMode, currentSettings, CONFIG, startGong4Loop]);
+
+    const playSecondGongSequence = useCallback(() => {
+        if (!isActiveRef.current) return;
+
+        // Always load the latest settings from localStorage directly
+        const settingsKey = isPomodoroMode
+            ? "pomodoroSettings"
+            : "trainingSettings";
+        let settings;
+
+        try {
+            const savedSettings = localStorage.getItem(settingsKey);
+            if (savedSettings) {
+                settings = JSON.parse(savedSettings);
+            } else {
+                settings = currentSettings;
+            }
+        } catch (error) {
+            console.error("Error loading settings from localStorage:", error);
+            settings = currentSettings;
+        }
+
+        if (!settings) {
+            console.error("No valid settings available");
+            return;
+        }
+
+        // Play 5 repetitions of the second gong sound
+        let count = 0;
+        const playNextGong = () => {
+            if (!isActiveRef.current) return;
+            if (audio2Ref.current) {
+                setIsGongPlaying(true);
+                audio2Ref.current
+                    .play()
+                    .then(() => {
+                        audio2Ref.current!.onended = () => {
+                            if (isActiveRef.current) {
+                                setIsGongPlaying(false);
+                                count++;
+                                if (count < 5) {
+                                    // Schedule the next gong in the sequence
+                                    gongSequenceTimerRef.current = setTimeout(
+                                        playNextGong,
+                                        (settings.pause2Duration ||
+                                            CONFIG.DEFAULT_PAUSE2_DURATION) *
+                                            1000
+                                    );
+                                } else {
+                                    // After 5 repetitions, either play third sound or activate confirmation
+                                    if (settings.isThirdSoundEnabled) {
+                                        playThirdGong();
+                                    } else {
+                                        setWaitingForConfirmation(true);
+                                        startGong4Loop();
+                                    }
+                                }
+                            }
+                        };
+                    })
+                    .catch((error) => {
+                        console.error("Second gong playback failed:", error);
+                        if (isActiveRef.current) {
+                            setIsGongPlaying(false);
+                            count++;
+                            if (count < 5) {
+                                gongSequenceTimerRef.current = setTimeout(
+                                    playNextGong,
+                                    (settings.pause2Duration ||
+                                        CONFIG.DEFAULT_PAUSE2_DURATION) * 1000
+                                );
+                            } else {
+                                if (settings.isThirdSoundEnabled) {
+                                    playThirdGong();
+                                } else {
+                                    setWaitingForConfirmation(true);
+                                    startGong4Loop();
+                                }
+                            }
+                        }
+                    });
+            } else {
+                count++;
+                if (count < 5) {
+                    gongSequenceTimerRef.current = setTimeout(
+                        playNextGong,
+                        (settings.pause2Duration ||
+                            CONFIG.DEFAULT_PAUSE2_DURATION) * 1000
+                    );
+                } else {
+                    if (settings.isThirdSoundEnabled) {
+                        playThirdGong();
+                    } else {
+                        setWaitingForConfirmation(true);
+                        startGong4Loop();
+                    }
+                }
+            }
+        };
+        playNextGong();
+    }, [
+        isPomodoroMode,
+        currentSettings,
+        CONFIG,
+        playThirdGong,
+        startGong4Loop,
+    ]);
+
+    const playFirstGong = useCallback(() => {
+        if (!isActiveRef.current) return;
+
+        // Always load the latest settings from localStorage directly
+        const settingsKey = isPomodoroMode
+            ? "pomodoroSettings"
+            : "trainingSettings";
+        let settings;
+
+        try {
+            const savedSettings = localStorage.getItem(settingsKey);
+            if (savedSettings) {
+                settings = JSON.parse(savedSettings);
+            } else {
+                settings = currentSettings;
+            }
+        } catch (error) {
+            console.error("Error loading settings from localStorage:", error);
+            settings = currentSettings;
+        }
+
+        if (!settings) {
+            console.error("No valid settings available");
+            return;
+        }
+
+        // Play a random gong sound from the available options
+        const randomGong = getRandomGong1();
+        if (randomGong) {
+            setIsGongPlaying(true);
+            randomGong
+                .play()
+                .then(() => {
+                    randomGong.onended = () => {
+                        if (isActiveRef.current) {
+                            setIsGongPlaying(false);
+                            gongSequenceTimerRef.current = setTimeout(
+                                playSecondGongSequence,
+                                (settings.pause1Duration ||
+                                    CONFIG.DEFAULT_PAUSE1_DURATION) * 1000
+                            );
+                        }
+                    };
+                })
+                .catch((error) => {
+                    console.error("First gong playback failed:", error);
+                    if (isActiveRef.current) {
+                        setIsGongPlaying(false);
+                        gongSequenceTimerRef.current = setTimeout(
+                            playSecondGongSequence,
+                            (settings.pause1Duration ||
+                                CONFIG.DEFAULT_PAUSE1_DURATION) * 1000
+                        );
+                    }
+                });
+        } else {
+            gongSequenceTimerRef.current = setTimeout(
+                playSecondGongSequence,
+                (settings.pause1Duration || CONFIG.DEFAULT_PAUSE1_DURATION) *
+                    1000
+            );
+        }
+    }, [
+        isPomodoroMode,
+        currentSettings,
+        CONFIG,
+        getRandomGong1,
+        playSecondGongSequence,
+    ]);
+
+    const playGongSequence = useCallback(() => {
+        console.log("playGongSequence called with state:", {
+            isSessionEnded,
+            isGongSequencePlaying,
+        });
+
+        if (!isActiveRef.current || isSessionEnded) {
+            console.log(
+                "Not playing gong sequence - session is ending or inactive"
+            );
+            return;
+        }
+
+        // Start playing the sound sequence
+        playFirstGong();
+    }, [isSessionEnded, playFirstGong]);
+
     useEffect(() => {
-        /**
-         * This useEffect handles both countdown and session timers
-         * Uses requestAnimationFrame for precise timing and synchronization
-         */
         if (!isActive || !isTraining || isSessionEnded) {
+            setLastTickTimestamp(null);
+            return;
+        }
+
+        // Don't run timers when gong sequence is playing
+        if (isGongSequencePlaying) {
             setLastTickTimestamp(null);
             return;
         }
@@ -150,13 +442,13 @@ export default function HomePage() {
         const updateTimers = (timestamp: number) => {
             if (!lastTickTimestamp) {
                 setLastTickTimestamp(timestamp);
+                lastUpdate = timestamp;
                 animationFrameId = requestAnimationFrame(updateTimers);
                 return;
             }
 
             const elapsed = timestamp - lastUpdate;
             if (elapsed >= 1000) {
-                // Update every second
                 lastUpdate = timestamp;
                 console.log(
                     "Timer tick - sessionTimeLeft:",
@@ -215,7 +507,13 @@ export default function HomePage() {
         lastTickTimestamp,
         isGongSequencePlaying,
         audio4Ref,
+        playGongSequence,
     ]);
+
+    // Dodajmy useEffect do synchronizacji wyświetlania
+    useEffect(() => {
+        console.log("Current session time:", sessionTimeLeft);
+    }, [sessionTimeLeft]);
 
     /**
      * Starts a new training session
@@ -463,114 +761,6 @@ export default function HomePage() {
     ]);
 
     /**
-     * Starts playing the fourth gong sound in a loop
-     * Used to indicate that the user should confirm standing up
-     */
-    const startGong4Loop = useCallback(() => {
-        if (!isActiveRef.current || !audio4Ref.current) return;
-
-        const playGong4 = () => {
-            if (!isActiveRef.current || !audio4Ref.current) return;
-            audio4Ref.current.currentTime = 0;
-            audio4Ref.current.play().catch((error) => {
-                console.error("Gong4 playback failed:", error);
-            });
-        };
-
-        audio4Ref.current.loop = true;
-        playGong4();
-    }, []);
-
-    /**
-     * Plays the third gong sound if enabled in settings
-     * After playing, activates the confirmation button and starts the gong4 loop
-     */
-    const playThirdGong = useCallback(() => {
-        // Always load the latest settings from localStorage directly
-        const settingsKey = isPomodoroMode
-            ? "pomodoroSettings"
-            : "trainingSettings";
-        let settings;
-
-        try {
-            const savedSettings = localStorage.getItem(settingsKey);
-            if (savedSettings) {
-                settings = JSON.parse(savedSettings);
-            } else {
-                // If no settings found in localStorage, use currentSettings as fallback
-                settings = currentSettings;
-            }
-        } catch (error) {
-            console.error("Error loading settings from localStorage:", error);
-            settings = currentSettings; // Fallback to currentSettings
-        }
-
-        if (!settings) {
-            console.error("No valid settings available");
-            return;
-        }
-
-        // Skip third sound if disabled or session is inactive
-        if (!isActiveRef.current || !settings.isThirdSoundEnabled) {
-            setWaitingForConfirmation(true);
-            startGong4Loop();
-            return;
-        }
-
-        // Play the third gong sound
-        if (audio3Ref.current) {
-            gongSequenceTimerRef.current = setTimeout(() => {
-                if (isActiveRef.current && settings.isThirdSoundEnabled) {
-                    setIsGongPlaying(true);
-                    audio3Ref
-                        .current!.play()
-                        .then(() => {
-                            audio3Ref.current!.onended = () => {
-                                if (isActiveRef.current) {
-                                    setIsGongPlaying(false);
-                                    setWaitingForConfirmation(true);
-                                    startGong4Loop();
-                                }
-                            };
-                        })
-                        .catch((error) => {
-                            console.error("Third gong playback failed:", error);
-                            if (isActiveRef.current) {
-                                setIsGongPlaying(false);
-                                setWaitingForConfirmation(true);
-                                startGong4Loop();
-                            }
-                        });
-                } else {
-                    setWaitingForConfirmation(true);
-                    startGong4Loop();
-                }
-            }, (settings.pause1Duration || CONFIG.DEFAULT_PAUSE1_DURATION) * 1000);
-        } else {
-            setWaitingForConfirmation(true);
-            startGong4Loop();
-        }
-    }, [
-        isPomodoroMode,
-        currentSettings,
-        CONFIG,
-        startGong4Loop,
-        setWaitingForConfirmation,
-    ]);
-
-    /**
-     * Stops the looping fourth gong sound
-     * Called when the user confirms standing up
-     */
-    const stopGong4 = useCallback(() => {
-        if (audio4Ref.current) {
-            audio4Ref.current.loop = false;
-            audio4Ref.current.pause();
-            audio4Ref.current.currentTime = 0;
-        }
-    }, []);
-
-    /**
      * Handles the user's confirmation that they stood up
      * Called when the user clicks the "Let's Go!" or "Finish Training" button
      * 1. Stops the looping gong4 sound
@@ -589,38 +779,21 @@ export default function HomePage() {
         // This function is called when the user clicks the "Let's go!" or "Finish Training" button
         // The button is only active when waitingForConfirmation or isSessionEnded is true
         if (isTraining && (waitingForConfirmation || isSessionEnded)) {
-            // CRITICAL FIX: Immediately ensure countdown is 0 and isSessionEnded is true
-            // This prevents any possibility of the "Next gong in:" message appearing
             if (isSessionEnded) {
-                // Force these states immediately to prevent any UI flicker
                 setCountdown(0);
-
-                // Stop the gong4 sound (looping sound)
                 stopGong4();
-
-                // Use React's batch update to ensure all state changes happen together
-                // This is the key fix - we're manually batching these critical state updates
-                // to ensure they're processed together before any rendering occurs
                 setTimeout(() => {
                     stopTraining();
                 }, 0);
             } else {
-                // For normal interval progression (not at session end)
-                // Stop the gong4 sound (looping sound)
                 stopGong4();
+                // Najpierw ustawiamy nowy interwał
+                setNewInterval();
+                // Potem resetujemy flagi
+                setWaitingForConfirmation(false);
                 setIsGongSequencePlaying(false);
-
-                // Double-check that we're not in the process of ending the session
-                if (!isSessionEnded) {
-                    console.log("Setting new interval");
-                    // Set a new interval
-                    setNewInterval();
-                } else {
-                    console.log("Not setting new interval - session is ending");
-                    // If we somehow got here with isSessionEnded true,
-                    // stop the training instead of setting a new interval
-                    stopTraining();
-                }
+                // Na końcu resetujemy timestamp
+                setLastTickTimestamp(null);
             }
         }
     }, [
@@ -630,250 +803,6 @@ export default function HomePage() {
         stopTraining,
         setNewInterval,
         stopGong4,
-        setIsGongSequencePlaying,
-        countdown,
-    ]);
-
-    /**
-     * Plays the sequence of gong sounds when the countdown reaches zero
-     * 1. Checks if the session has ended before playing
-     * 2. Sets the gong sequence playing flag
-     * 3. Starts the sequence with the first gong
-     */
-    const playGongSequence = useCallback(() => {
-        // Log when this function is called to help with debugging
-        console.log("playGongSequence called with state:", {
-            isSessionEnded,
-        });
-
-        // Function that plays the sound sequence (gong1, gong2, gong3, gong4)
-        // Called when countdown reaches 0
-        // Early return if the session is ending or has ended
-        if (!isActiveRef.current || isSessionEnded) {
-            console.log(
-                "Not playing gong sequence - session is ending or inactive"
-            );
-            return;
-        }
-
-        // Set flag that the sound sequence is playing
-        setIsGongSequencePlaying(true);
-
-        // Ensure countdown is set to 0
-        setCountdown(0);
-
-        // Clear the session timer when gong sequence starts
-        if (sessionTimerRef.current) {
-            clearTimeout(sessionTimerRef.current);
-        }
-
-        // Final check before playing the gong sequence
-        // This ensures we don't play the gong sequence if the session state changed
-        if (isSessionEnded) {
-            console.log("Session state changed, not playing gong sequence");
-            setIsGongSequencePlaying(false);
-            return;
-        }
-
-        // Start playing the sound sequence
-        playFirstGong();
-    }, [setCountdown, isSessionEnded]);
-
-    /**
-     * Returns a random gong sound from the available options
-     * Used to add variety to the first gong sound
-     */
-    const getRandomGong1 = useCallback(() => {
-        const randomIndex = Math.floor(
-            Math.random() * audioRefs.current.length
-        );
-        return audioRefs.current[randomIndex];
-    }, []);
-
-    /**
-     * Plays the first gong in the sequence
-     * After playing, schedules the second gong sequence
-     */
-    const playFirstGong = useCallback(() => {
-        if (!isActiveRef.current) return;
-
-        // Always load the latest settings from localStorage directly
-        const settingsKey = isPomodoroMode
-            ? "pomodoroSettings"
-            : "trainingSettings";
-        let settings;
-
-        try {
-            const savedSettings = localStorage.getItem(settingsKey);
-            if (savedSettings) {
-                settings = JSON.parse(savedSettings);
-            } else {
-                // If no settings found in localStorage, use currentSettings as fallback
-                settings = currentSettings;
-            }
-        } catch (error) {
-            console.error("Error loading settings from localStorage:", error);
-            settings = currentSettings; // Fallback to currentSettings
-        }
-
-        if (!settings) {
-            console.error("No valid settings available");
-            return;
-        }
-
-        // Play a random gong sound from the available options
-        const randomGong = getRandomGong1();
-        if (randomGong) {
-            setIsGongPlaying(true);
-            randomGong
-                .play()
-                .then(() => {
-                    randomGong.onended = () => {
-                        if (isActiveRef.current) {
-                            setIsGongPlaying(false);
-                            gongSequenceTimerRef.current = setTimeout(
-                                playSecondGongSequence,
-                                (settings.pause1Duration ||
-                                    CONFIG.DEFAULT_PAUSE1_DURATION) * 1000
-                            );
-                        }
-                    };
-                })
-                .catch((error) => {
-                    console.error("First gong playback failed:", error);
-                    if (isActiveRef.current) {
-                        setIsGongPlaying(false);
-                        gongSequenceTimerRef.current = setTimeout(
-                            playSecondGongSequence,
-                            (settings.pause1Duration ||
-                                CONFIG.DEFAULT_PAUSE1_DURATION) * 1000
-                        );
-                    }
-                });
-        } else {
-            gongSequenceTimerRef.current = setTimeout(
-                playSecondGongSequence,
-                (settings.pause1Duration || CONFIG.DEFAULT_PAUSE1_DURATION) *
-                    1000
-            );
-        }
-    }, [isPomodoroMode, currentSettings, CONFIG, getRandomGong1]);
-
-    /**
-     * Plays the second part of the gong sequence
-     * Plays 5 repetitions of the second gong sound with pauses in between
-     * After completion, either plays the third gong or activates the confirmation button
-     */
-    const playSecondGongSequence = useCallback(() => {
-        if (!isActiveRef.current) return;
-
-        // Always load the latest settings from localStorage directly
-        const settingsKey = isPomodoroMode
-            ? "pomodoroSettings"
-            : "trainingSettings";
-        let settings;
-
-        try {
-            const savedSettings = localStorage.getItem(settingsKey);
-            if (savedSettings) {
-                settings = JSON.parse(savedSettings);
-            } else {
-                // If no settings found in localStorage, use currentSettings as fallback
-                settings = currentSettings;
-            }
-        } catch (error) {
-            console.error("Error loading settings from localStorage:", error);
-            settings = currentSettings; // Fallback to currentSettings
-        }
-
-        if (!settings) {
-            console.error("No valid settings available");
-            return;
-        }
-
-        // Play 5 repetitions of the second gong sound
-        let count = 0;
-        const playNextGong = () => {
-            if (!isActiveRef.current) return;
-            if (audio2Ref.current) {
-                setIsGongPlaying(true);
-                audio2Ref.current
-                    .play()
-                    .then(() => {
-                        audio2Ref.current!.onended = () => {
-                            if (isActiveRef.current) {
-                                setIsGongPlaying(false);
-                                count++;
-                                if (count < 5) {
-                                    // Schedule the next gong in the sequence
-                                    gongSequenceTimerRef.current = setTimeout(
-                                        playNextGong,
-                                        (settings.pause2Duration ||
-                                            CONFIG.DEFAULT_PAUSE2_DURATION) *
-                                            1000
-                                    );
-                                } else {
-                                    // After 5 repetitions, either play third sound or activate confirmation
-                                    if (settings.isThirdSoundEnabled) {
-                                        playThirdGong();
-                                    } else {
-                                        // Set waitingForConfirmation to true to enable the Let's Go button
-                                        setWaitingForConfirmation(true);
-                                        startGong4Loop();
-                                    }
-                                }
-                            }
-                        };
-                    })
-                    .catch((error) => {
-                        console.error("Second gong playback failed:", error);
-                        if (isActiveRef.current) {
-                            setIsGongPlaying(false);
-                            count++;
-                            if (count < 5) {
-                                gongSequenceTimerRef.current = setTimeout(
-                                    playNextGong,
-                                    (settings.pause2Duration ||
-                                        CONFIG.DEFAULT_PAUSE2_DURATION) * 1000
-                                );
-                            } else {
-                                if (settings.isThirdSoundEnabled) {
-                                    playThirdGong();
-                                } else {
-                                    // Set waitingForConfirmation to true to enable the Let's Go button
-                                    setWaitingForConfirmation(true);
-                                    startGong4Loop();
-                                }
-                            }
-                        }
-                    });
-            } else {
-                count++;
-                if (count < 5) {
-                    gongSequenceTimerRef.current = setTimeout(
-                        playNextGong,
-                        (settings.pause2Duration ||
-                            CONFIG.DEFAULT_PAUSE2_DURATION) * 1000
-                    );
-                } else {
-                    if (settings.isThirdSoundEnabled) {
-                        playThirdGong();
-                    } else {
-                        // Set waitingForConfirmation to true to enable the Let's Go button
-                        setWaitingForConfirmation(true);
-                        startGong4Loop();
-                    }
-                }
-            }
-        };
-        playNextGong();
-    }, [
-        isPomodoroMode,
-        currentSettings,
-        CONFIG,
-        playThirdGong,
-        startGong4Loop,
-        setWaitingForConfirmation,
     ]);
 
     /**
