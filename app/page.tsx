@@ -140,7 +140,7 @@ export default function HomePage() {
     }, [isActive, isTraining, countdown]);
 
     useEffect(() => {
-        if (isActive && isTraining) {
+        if (isActive && isTraining && !isGongSequencePlaying) {
             sessionTimerRef.current = setTimeout(() => {
                 if (isActiveRef.current) {
                     if (sessionTimeLeft > 0) {
@@ -155,7 +155,13 @@ export default function HomePage() {
         return () => {
             if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
         };
-    }, [isActive, isTraining, sessionTimeLeft, isSessionEnded]);
+    }, [
+        isActive,
+        isTraining,
+        sessionTimeLeft,
+        isSessionEnded,
+        isGongSequencePlaying,
+    ]);
 
     const startTraining = useCallback(() => {
         if (!currentSettings) return;
@@ -328,6 +334,7 @@ export default function HomePage() {
     const handleStoodUp = useCallback(() => {
         if (isTraining && waitingForConfirmation) {
             stopGong4();
+            setIsGongSequencePlaying(false);
             if (isLastInterval) {
                 stopTraining();
             } else {
@@ -341,12 +348,19 @@ export default function HomePage() {
         stopTraining,
         setNewInterval,
         stopGong4,
+        setIsGongSequencePlaying,
     ]);
 
     const playGongSequence = useCallback(() => {
         if (!isActiveRef.current) return;
         setWaitingForConfirmation(true);
         setIsGongSequencePlaying(true);
+
+        // Clear the session timer when gong sequence starts
+        if (sessionTimerRef.current) {
+            clearTimeout(sessionTimerRef.current);
+        }
+
         playFirstGong();
     }, []);
 
