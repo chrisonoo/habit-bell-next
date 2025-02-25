@@ -125,23 +125,23 @@ export function useTrainingTimer(
                     countdown
                 );
 
-                // Update both timers simultaneously
-                if (sessionTimeLeft > 0) {
-                    setSessionTimeLeft((prev) => Math.max(0, prev - 1));
-                } else if (!isSessionEnded) {
-                    setCountdown(0);
-                    setIsSessionEnded(true);
-                    onSessionEnd();
+                // Update countdown
+                if (countdown > 0) {
+                    const newCountdown = countdown - 1;
+                    setCountdown(newCountdown);
+
+                    // If countdown just reached zero, trigger gong sequence
+                    if (newCountdown === 0) {
+                        onCountdownZero();
+                    }
                 }
 
-                if (countdown > 0 && !isSessionEnded) {
-                    setCountdown((prev) => Math.max(0, prev - 1));
-                } else if (
-                    countdown === 0 &&
-                    !isSessionEnded &&
-                    !isGongSequencePlaying
-                ) {
-                    onCountdownZero();
+                // Update session time only if gong sequence is not playing
+                if (!isGongSequencePlaying && sessionTimeLeft > 0) {
+                    setSessionTimeLeft((prev) => Math.max(0, prev - 1));
+                } else if (sessionTimeLeft === 0 && !isSessionEnded) {
+                    setIsSessionEnded(true);
+                    onSessionEnd();
                 }
             }
 
