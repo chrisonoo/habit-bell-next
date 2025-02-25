@@ -30,7 +30,7 @@ export function TrainingButtons({
                 <Button
                     onClick={handleStoodUp}
                     className="flex-1"
-                    disabled={!waitingForConfirmation || isGongSequencePlaying}
+                    disabled={!waitingForConfirmation}
                 >
                     Let's Go!
                 </Button>

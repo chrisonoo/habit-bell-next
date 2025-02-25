@@ -265,9 +265,24 @@ export default function HomePage() {
         setWaitingForConfirmation(false);
     }, [currentSettings]);
 
+    const startGong4Loop = useCallback(() => {
+        if (!isActiveRef.current || !audio4Ref.current) return;
+
+        const playGong4 = () => {
+            if (!isActiveRef.current || !audio4Ref.current) return;
+            audio4Ref.current.currentTime = 0;
+            audio4Ref.current.play().catch((error) => {
+                console.error("Gong4 playback failed:", error);
+            });
+        };
+
+        audio4Ref.current.loop = true;
+        playGong4();
+    }, []);
+
     const playThirdGong = useCallback(() => {
         if (!isActiveRef.current || !currentSettings?.isThirdSoundEnabled) {
-            setIsGongSequencePlaying(false);
+            setWaitingForConfirmation(true);
             startGong4Loop();
             return;
         }
@@ -284,7 +299,7 @@ export default function HomePage() {
                             audio3Ref.current!.onended = () => {
                                 if (isActiveRef.current) {
                                     setIsGongPlaying(false);
-                                    setIsGongSequencePlaying(false);
+                                    setWaitingForConfirmation(true);
                                     startGong4Loop();
                                 }
                             };
@@ -293,35 +308,20 @@ export default function HomePage() {
                             console.error("Third gong playback failed:", error);
                             if (isActiveRef.current) {
                                 setIsGongPlaying(false);
-                                setIsGongSequencePlaying(false);
+                                setWaitingForConfirmation(true);
                                 startGong4Loop();
                             }
                         });
                 } else {
-                    setIsGongSequencePlaying(false);
+                    setWaitingForConfirmation(true);
                     startGong4Loop();
                 }
             }, (currentSettings?.pause1Duration || CONFIG.DEFAULT_PAUSE1_DURATION) * 1000);
         } else {
-            setIsGongSequencePlaying(false);
+            setWaitingForConfirmation(true);
             startGong4Loop();
         }
-    }, [currentSettings, CONFIG]);
-
-    const startGong4Loop = useCallback(() => {
-        if (!isActiveRef.current || !audio4Ref.current) return;
-
-        const playGong4 = () => {
-            if (!isActiveRef.current || !audio4Ref.current) return;
-            audio4Ref.current.currentTime = 0;
-            audio4Ref.current.play().catch((error) => {
-                console.error("Gong4 playback failed:", error);
-            });
-        };
-
-        audio4Ref.current.loop = true;
-        playGong4();
-    }, []);
+    }, [currentSettings, CONFIG, startGong4Loop, setWaitingForConfirmation]);
 
     const stopGong4 = useCallback(() => {
         if (audio4Ref.current) {
@@ -353,7 +353,6 @@ export default function HomePage() {
 
     const playGongSequence = useCallback(() => {
         if (!isActiveRef.current) return;
-        setWaitingForConfirmation(true);
         setIsGongSequencePlaying(true);
 
         // Clear the session timer when gong sequence starts
@@ -435,7 +434,9 @@ export default function HomePage() {
                                     if (currentSettings?.isThirdSoundEnabled) {
                                         playThirdGong();
                                     } else {
-                                        setIsGongSequencePlaying(false);
+                                        // Set waitingForConfirmation to true to enable the Let's Go button
+                                        setWaitingForConfirmation(true);
+                                        startGong4Loop();
                                     }
                                 }
                             }
@@ -456,7 +457,9 @@ export default function HomePage() {
                                 if (currentSettings?.isThirdSoundEnabled) {
                                     playThirdGong();
                                 } else {
-                                    setIsGongSequencePlaying(false);
+                                    // Set waitingForConfirmation to true to enable the Let's Go button
+                                    setWaitingForConfirmation(true);
+                                    startGong4Loop();
                                 }
                             }
                         }
@@ -473,13 +476,21 @@ export default function HomePage() {
                     if (currentSettings?.isThirdSoundEnabled) {
                         playThirdGong();
                     } else {
-                        setIsGongSequencePlaying(false);
+                        // Set waitingForConfirmation to true to enable the Let's Go button
+                        setWaitingForConfirmation(true);
+                        startGong4Loop();
                     }
                 }
             }
         };
         playNextGong();
-    }, [currentSettings, CONFIG]);
+    }, [
+        currentSettings,
+        CONFIG,
+        playThirdGong,
+        startGong4Loop,
+        setWaitingForConfirmation,
+    ]);
 
     const playTestGong = useCallback(
         (gongNumber: 1 | 2 | 3) => {
